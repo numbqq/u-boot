@@ -89,7 +89,7 @@ struct partitions emmc_partition_table[]={
     PARTITION_ELEMENT(MMC_RESERVED_NAME, MMC_RESERVED_SIZE, 0),
     /* prior partitions, same partition name with dts*/
     /* partition size will be overide by dts*/
-    PARTITION_ELEMENT(MMC_CACHE_NAME, 0, 0),
+    // PARTITION_ELEMENT(MMC_CACHE_NAME, 0, 0),
     // PARTITION_ELEMENT(MMC_KEY_NAME, MMC_KEY_SIZE, 0),
     // PARTITION_ELEMENT(MMC_SECURE_NAME, MMC_SECURE_SIZE, 0),
     PARTITION_ELEMENT(MMC_ENV_NAME, MMC_ENV_SIZE, 0),
