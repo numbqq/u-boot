@@ -478,7 +478,7 @@ int board_late_init(void)
 
 	/* Khadas VIM check */
 	run_command("saradc open 1;" \
-			"if saradc get_in_range 0x1d0 0x220; then " \
+			"if saradc get_in_range 0x1a0 0x220; then " \
 				"echo Product checking: Khadas VIM.;" \
 			"else  " \
 				"echo Product checking: Unknown!;" \
