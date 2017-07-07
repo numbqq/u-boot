@@ -139,15 +139,6 @@ static const struct winbond_spi_flash_params winbond_spi_flash_table[] = {
 		.nr_blocks          = 256,
 		.name               = "W25Q128",
 	},
-
-	{
-		.id                 = 0x6015,
-		.l2_page_size       = 8,
-		.pages_per_sector   = 16,
-		.sectors_per_block  = 16,
-		.nr_blocks          = 32,
-		.name               = "W25Q16FW",
-	},
 };
 
 #ifdef CONFIG_AMLOGIC_SPI_FLASH
@@ -421,7 +412,7 @@ struct spi_flash *spi_flash_probe_winbond(struct spi_slave *spi, u8 *idcode)
 	}
 
 	if (i == ARRAY_SIZE(winbond_spi_flash_table)) {
-		printf("SF: Unsupported Winbond ID %02x%02x\n",
+		debug("SF: Unsupported Winbond ID %02x%02x\n",
 				idcode[1], idcode[2]);
 		return NULL;
 	}

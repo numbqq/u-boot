@@ -23,7 +23,6 @@
 #include <partition_table.h>
 #endif
 #include <amlogic/secure_storage.h>
-#include <asm/arch/secure_apb.h>
 
 static struct list_head mmc_devices;
 static int cur_dev_num = -1;
@@ -1550,14 +1549,6 @@ static int mmc_complete_init(struct mmc *mmc)
 	return err;
 }
 
-void mmc_bus_init(void)
-{
-	*P_PAD_PULL_UP_EN_REG2 = 0xffffffff;
-	*P_PAD_PULL_UP_REG2 = 0xffffffff;
-	*P_PERIPHS_PIN_MUX_7 = 0xf0000000;
-	(*((volatile unsigned *)((volatile uint32_t *)0xc1108c88))) =(0x2ab313);
-}
-
 int mmc_init(struct mmc *mmc)
 {
 	int err = IN_PROGRESS;
@@ -1567,8 +1558,6 @@ int mmc_init(struct mmc *mmc)
 		return 0;
 
 	start = get_timer(0);
-
-	mmc_bus_init();
 
 	if (!mmc->init_in_progress)
 		err = mmc_start_init(mmc);
