@@ -38,7 +38,7 @@
 #define		MMC_BOTTOM_RSV_SIZE				(0)
 #endif		/* CONFIG_AML_MMC_INHERENT_PART */
 
-#define     MMC_CACHE_NAME                  "cache"
+//#define     MMC_CACHE_NAME                  "cache"
 // #define     MMC_CACHE_SIZE                  (512*SZ_1M) // this is not used and should be get from spl
 
 #define     MMC_ENV_NAME                    "env"
