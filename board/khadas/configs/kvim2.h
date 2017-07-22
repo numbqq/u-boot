@@ -117,7 +117,7 @@
 			"run upgrade_key;"	\
 			"setenv bootargs ${initargs}  ddr_size=${ddr_size};"
 
-#define CONFIG_BOOTCOMMAND "imgread kernel ${bootdisk} ${loadaddr}; bootm ${loadaddr}"
+#define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim2.dtb;bootm 1080000 10000000 20000000"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
