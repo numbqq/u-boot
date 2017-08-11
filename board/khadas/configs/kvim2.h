@@ -112,7 +112,10 @@
 			"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_con    sole_suspend consoleblank=0 fsck.repair=yes net.ifnames=0\0" \
 		"storeargs="\
 			"setenv bootargs ${initargs} jtag=${jtag} ddr_size=${ddr_size};"\
-		"\0"\
+			"run mac_init;\0"\
+		"mac_init="\
+			"kbi ethmac;"\
+			"setenv bootargs ${bootargs} mac=${eth_mac} androidboot.mac=${eth_mac};\0"\
 		"combine_key="\
 			"saradc open 0;"\
 			"if saradc get_in_range 0x0 0x1f; then "\
@@ -144,7 +147,6 @@
 				"kbi trigger wol w 1;"\
 				"gpio set GPIODV_2;"\
 			"fi;\0"\
-
 
 #define CONFIG_PREBOOT  \
             "run init_display;"\
