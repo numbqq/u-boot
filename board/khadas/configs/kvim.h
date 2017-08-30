@@ -112,6 +112,15 @@
 			"bootdisk=ramdisk\0" \
 			"bootargs=" \
 				"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 jtag=disable\0" \
+			"combine_key="\
+				"saradc open 0;"\
+				"if saradc get_in_range 0x0 0x1f; then "\
+					"echo Detect function key;"\
+					"if gpio input GPIOAO_2; then "\
+						"echo Detect combine keys;"\
+						"store init 3; fi;"\
+				"fi;"\
+				"\0"\
 			"upgrade_key=" \
 				"if gpio input GPIOAO_2; then " \
 					"echo Found upgrade button pressed; sleep 1;" \
@@ -124,6 +133,7 @@
  */
 #define CONFIG_PREBOOT \
 	"run init_display;" \
+	"run combine_key;" \
 	"run upgrade_key;"
 
 #define CONFIG_BOOTCOMMAND "imgread kernel ${bootdisk} ${loadaddr}; bootm ${loadaddr}"
