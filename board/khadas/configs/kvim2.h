@@ -133,12 +133,22 @@
 				"echo Product checking: fail!; sleep 5; reboot;"\
 			"fi;fi;"\
 			"\0"\
+		"wol_init="\
+			"kbi powerstate;"\
+			"kbi trigger wol r;"\
+			"setenv bootargs ${bootargs} wol_enable=${wol_enable};"\
+			"if test ${power_state} = 1; then "\
+				"kbi trigger wol w 1;"\
+				"gpio set GPIODV_2;"\
+			"fi;\0"\
+
 
 #define CONFIG_PREBOOT  \
             "run init_display;"\
             "run combine_key;" \
 			"run storeargs;"\
-            "run upgrade_key;" \
+            "run wol_init;" \
+			"run upgrade_key;" \
 			"run vim2_check;"
 #define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim2.dtb;bootm 1080000 10000000 20000000"
 
