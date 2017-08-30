@@ -82,6 +82,7 @@
 #define CONFIG_SYS_MAXARGS  64
 #define CONFIG_EXTRA_ENV_SETTINGS \
 		"boardname=kvim2\0" \
+		"jtag=disable\0"\
 		"loadaddr=1080000\0" \
 		"dtb_mem_addr=0x1000000\0" \
 		"fdt_high=0x20000000\0" \
@@ -107,7 +108,7 @@
 		"initargs=" \
 			"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_con    sole_suspend consoleblank=0 fsck.repair=yes net.ifnames=0\0" \
 		"storeargs="\
-			"setenv bootargs ${initargs};"\
+			"setenv bootargs ${initargs} jtag=${jtag};"\
 		"\0"\
 		"combine_key="\
 			"saradc open 0;"\
