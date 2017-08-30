@@ -239,6 +239,14 @@
                 "if gpio input GPIOAO_2; then run update; fi;"\
             "fi;"\
             "\0"\
+		"vim2_check="\
+			"saradc open 1;"\
+			"if saradc get_in_range 0x1a0 0x220; then "\
+				"echo Product checking: pass!;"\
+			"else if saradc get_in_range 0x0 0x1cf; then "\
+				"echo Product checking: fail!; sleep 5; reboot;"\
+			"fi;fi;"\
+			"\0"\
 
 #define CONFIG_PREBOOT  \
             "run bcb_cmd; "\
@@ -248,7 +256,8 @@
             "run combine_key;" \
 			"run storeargs;"\
             "run upgrade_key;" \
-            "forceupdate;" \
+			"run vim2_check;" \
+			"forceupdate;" \
             "run switch_bootmode;"
 #define CONFIG_BOOTCOMMAND "run storeboot"
 
