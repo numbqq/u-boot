@@ -108,7 +108,7 @@
 		"initargs=" \
 			"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_con    sole_suspend consoleblank=0 fsck.repair=yes net.ifnames=0\0" \
 		"storeargs="\
-			"setenv bootargs ${initargs} jtag=${jtag};"\
+			"setenv bootargs ${initargs} jtag=${jtag} ddr_size=${ddr_size};"\
 		"\0"\
 		"combine_key="\
 			"saradc open 0;"\
@@ -139,7 +139,7 @@
             "run combine_key;" \
 			"run storeargs;"\
             "run upgrade_key;" \
-			"run vim2_check;" \
+			"run vim2_check;"
 #define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim2.dtb;bootm 1080000 10000000 20000000"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
@@ -154,6 +154,7 @@
 #define CONFIG_CPU_CLK					1200 //MHz. Range: 600-1800, should be multiple of 24
 
 /* ddr */
+#define CONFIG_DDR_AUTO_DTB             1
 #define CONFIG_DDR_SIZE					0 //MB //0 means ddr size auto-detect
 #define CONFIG_DDR_CLK					912  //MHz, Range: 384-1200, should be multiple of 24
 #define CONFIG_DDR4_CLK					1008  //MHz, for boards which use different ddr chip
