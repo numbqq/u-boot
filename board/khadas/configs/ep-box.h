@@ -111,7 +111,7 @@
         	"\0"\
 			"bootdisk=ramdisk\0" \
 			"bootargs=" \
-				"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 jtag=disable\0" \
+				"root=LABEL=ROOTFS rootflags=data=writeback rw console=ttyS0,115200n8 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 jtag=disable\0" \
 			"combine_key="\
 				"saradc open 0;"\
 				"if saradc get_in_range 0x0 0x1f; then "\
