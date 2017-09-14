@@ -116,7 +116,7 @@ static void power_off_at_24M(void)
 {
 	/* LED GPIODV_24*/
 	aml_update_bits(PREG_PAD_GPIO0_EN_N, 1 << 24, 0);
-	aml_update_bits(PREG_PAD_GPIO0_O, 1 << 24, 0);
+	aml_update_bits(PREG_PAD_GPIO0_O, 1 << 24, 1 << 24);
 }
 
 static void power_on_at_24M(void)
@@ -124,7 +124,7 @@ static void power_on_at_24M(void)
 	if (g_pwr_op->exit_reason != 4) {
 		/* bluetooth wakeup */
 		aml_update_bits(PREG_PAD_GPIO0_EN_N, 1 << 24, 0);
-		aml_update_bits(PREG_PAD_GPIO0_O, 1 << 24, 1 << 24);
+		aml_update_bits(PREG_PAD_GPIO0_O, 1 << 24, 0 << 24);
 	}
 }
 
