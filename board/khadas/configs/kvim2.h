@@ -128,8 +128,8 @@
 			"\0"\
 		"upgrade_key="\
             "if gpio input GPIOAO_2; then "\
-                "echo detect upgrade key; sleep 3;"\
-                "if gpio input GPIOAO_2; then run update; fi;"\
+                "echo detect upgrade key; sleep 1;"\
+                "if gpio input GPIOAO_2; then update; fi;"\
             "fi;"\
             "\0"\
 		"vim2_check="\
