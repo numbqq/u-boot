@@ -129,6 +129,11 @@
 					"echo Found upgrade button pressed; sleep 1;" \
 					"if gpio input GPIOAO_2; then update; fi;" \
 				"fi;" \
+				"\0"\
+			"check_power_key=" \
+				"echo Press POWER KEY to conitune;" \
+				"check_key GPIOAO_2;" \
+				"gpio clear GPIODV_26;" \
 			"\0"
 /* boot partition name for dual boot
  * - boot: for Android OS
@@ -137,7 +142,8 @@
 #define CONFIG_PREBOOT \
 	"run init_display;" \
 	"run combine_key;" \
-	"run upgrade_key;"
+	"run upgrade_key;" \
+	"run check_power_key;"
 
 #define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 5080000 ep-box.dtb;bootm 1080000 10000000 5080000"
 
