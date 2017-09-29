@@ -136,6 +136,9 @@
 					"check_key GPIOAO_2;" \
 					"gpio clear GPIODV_26;" \
 				"fi;"\
+				"\0" \
+			"updateu=" \
+				"usb start;fatload usb 0 1080000 u-boot.bin;store rom_write 1080000 0 1000000" \
 			"\0"
 /* boot partition name for dual boot
  * - boot: for Android OS
