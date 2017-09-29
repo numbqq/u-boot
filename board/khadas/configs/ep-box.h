@@ -131,9 +131,11 @@
 				"fi;" \
 				"\0"\
 			"check_power_key=" \
-				"echo Press POWER KEY to conitune;" \
-				"check_key GPIOAO_2;" \
-				"gpio clear GPIODV_26;" \
+				"if test ${reboot_mode} != reboot_test; then "\
+					"echo Press POWER KEY to conitune;" \
+					"check_key GPIOAO_2;" \
+					"gpio clear GPIODV_26;" \
+				"fi;"\
 			"\0"
 /* boot partition name for dual boot
  * - boot: for Android OS

@@ -110,6 +110,11 @@ int do_get_rebootmode (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 			setenv("reboot_mode","libreelec_reboot");
 			break;
 		}
+		case AMLOGIC_REBOOT_TEST_REBOOT:
+		{
+			setenv("reboot_mode","reboot_test");
+			break;
+		}
 		default:
 		{
 			setenv("reboot_mode","charging");
