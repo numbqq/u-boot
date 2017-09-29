@@ -73,6 +73,9 @@
 #define CONFIG_AML_MESON_SERIAL   1
 #define CONFIG_SERIAL_MULTI		1
 
+/* EPBOX power key detect */
+#define CONFIG_KHADAS_CHECK__KEY 1
+
 //Enable ir remote wake up for bl30
 //#define CONFIG_IR_REMOTE
 //#define CONFIG_AML_IRDETECT_EARLY
