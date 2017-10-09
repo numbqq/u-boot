@@ -132,7 +132,7 @@
 				"\0"\
 			"check_power_key=" \
 				"if test ${reboot_mode} != reboot_test; then "\
-					"echo Press POWER KEY to conitune;" \
+					"echo Press POWER KEY to continue;" \
 					"check_key GPIOAO_2;" \
 					"gpio clear GPIODV_26;" \
 				"fi;"\
