@@ -106,6 +106,7 @@
 			"fb_addr=0x3d800000\0" \
 			"fb_width=1920\0" \
 			"fb_height=1080\0" \
+			"combine_keys=0\0" \
 			"init_display=" \
 				"osd open;" \
 				"osd clear;" \
@@ -116,27 +117,37 @@
 			"bootargs=" \
 				"root=LABEL=ROOTFS rootflags=data=writeback rw console=ttyS0,115200n8 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 jtag=disable\0" \
 			"combine_key="\
-				"saradc open 0;"\
-				"if saradc get_in_range 0x0 0x1f; then "\
-					"echo Detect function key;"\
-					"if gpio input GPIOAO_2; then "\
+				"if gpio input GPIOAO_2; then "\
+					"echo Detect power key;"\
+					"if gpio input GPIOAO_8; then "\
 						"echo Detect combine keys;"\
-						"store init 3; fi;"\
+						"setenv combine_keys 1;" \
+						"setenv bootargs ${bootargs} reboot_test; fi;"\
 				"fi;"\
 				"\0"\
 			"upgrade_key=" \
-				"if gpio input GPIOAO_2; then " \
-					"echo Found upgrade button pressed; sleep 1;" \
-					"if gpio input GPIOAO_2; then update; fi;" \
+				"if test ${combine_keys} != 1; then " \
+					"if gpio input GPIOAO_2; then " \
+						"echo Found upgrade button pressed; sleep 1;" \
+						"if gpio input GPIOAO_2; then update; fi;" \
+					"fi;" \
 				"fi;" \
 				"\0"\
 			"check_power_key=" \
-				"if test ${reboot_mode} != reboot_test; then "\
-					"echo Press POWER KEY to continue;" \
-					"check_key GPIOAO_2;" \
-					"gpio clear GPIODV_26;" \
-				"fi;"\
+				"if test ${combine_keys} != 1; then " \
+					"if test ${reboot_mode} != reboot_test; then "\
+						"echo Press POWER KEY to continue;" \
+						"check_key GPIOAO_2;" \
+						"gpio clear GPIODV_26;" \
+					"fi;"\
+				"fi;" \
 				"\0" \
+			"check_reboot_mode=" \
+				"if test ${reboot_mode} = reboot_test; then "\
+					"echo Reboot test detect;" \
+					"setenv bootargs ${bootargs} reboot_test;" \
+				"fi;"\
+				"\0"\
 			"updateu=" \
 				"usb start;fatload usb 0 1080000 u-boot.bin;store rom_write 1080000 0 1000000" \
 			"\0"
@@ -146,6 +157,7 @@
  */
 #define CONFIG_PREBOOT \
 	"run init_display;" \
+	"run check_reboot_mode;"\
 	"run combine_key;" \
 	"run upgrade_key;" \
 	"run check_power_key;"
