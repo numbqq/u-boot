@@ -136,9 +136,11 @@
 			"check_power_key=" \
 				"if test ${combine_keys} != 1; then " \
 					"if test ${reboot_mode} != reboot_test; then "\
-						"echo Press POWER KEY to continue;" \
-						"check_key GPIOAO_2;" \
-						"gpio clear GPIODV_26;" \
+						"if test ${reboot_mode} != app_reboot; then "\
+							"echo Press POWER KEY to continue;" \
+							"check_key GPIOAO_2;" \
+							"gpio clear GPIODV_26;" \
+						"fi;" \
 					"fi;"\
 				"fi;" \
 				"\0" \
