@@ -413,6 +413,8 @@
 #define CONFIG_CPU_CLK_DEBUG        600
 #endif
 
+#define CONFIG_KHADAS_CFGLOAD 1
+
 //support secure boot
 #define CONFIG_AML_SECURE_UBOOT   1
 
