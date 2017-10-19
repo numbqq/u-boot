@@ -123,6 +123,10 @@
 						"echo Detect combine keys;"\
 						"setenv combine_keys 1;" \
 						"setenv bootargs ${bootargs} reboot_test; fi;"\
+						"gpio clear GPIODV_26;" \
+						"gpio clear GPIODV_24;" \
+						"gpio clear GPIODV_25;" \
+						"gpio clear GPIOAO_9;" \
 				"fi;"\
 				"\0"\
 			"upgrade_key=" \
