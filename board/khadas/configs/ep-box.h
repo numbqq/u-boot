@@ -142,7 +142,7 @@
 					"if test ${reboot_mode} = cold_boot; then "\
 						"echo Press POWER KEY to continue;" \
 						"check_key GPIOAO_2;" \
-						"gpio clear GPIODV_26;" \
+						"gpio clear GPIODV_27;" \
 					"fi;"\
 				"fi;" \
 				"\0" \
