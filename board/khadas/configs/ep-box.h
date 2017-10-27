@@ -162,7 +162,6 @@
 #define CONFIG_PREBOOT \
 	"run init_display;" \
 	"run check_reboot_mode;"\
-	"run combine_key;" \
 	"run upgrade_key;" \
 	"run check_power_key;"
 
