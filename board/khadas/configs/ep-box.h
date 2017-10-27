@@ -143,6 +143,7 @@
 						"echo Press POWER KEY to continue;" \
 						"check_key GPIOAO_2;" \
 						"gpio clear GPIODV_27;" \
+						"gpio clear GPIODV_26;" \
 					"fi;"\
 				"fi;" \
 				"\0" \
