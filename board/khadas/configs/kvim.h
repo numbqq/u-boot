@@ -103,6 +103,9 @@
 			"fb_addr=0x3d800000\0" \
 			"fb_width=1920\0" \
 			"fb_height=1080\0" \
+			"sdcburncfg=aml_sdc_burn.ini\0"\
+			"sdc_burning=sdc_burn ${sdcburncfg}\0"\
+			"usb_burning=update 1000\0" \
 			"init_display=" \
 				"osd open;" \
 				"osd clear;" \
@@ -121,10 +124,15 @@
 						"store init 3; fi;"\
 				"fi;"\
 				"\0"\
+			"update="\
+				/*first usb burning, second sdc_burn*/\
+				"run usb_burning; "\
+				"run sdc_burning; "\
+				"\0"\
 			"upgrade_key=" \
 				"if gpio input GPIOAO_2; then " \
 					"echo Found upgrade button pressed; sleep 1;" \
-					"if gpio input GPIOAO_2; then update; fi;" \
+					"if gpio input GPIOAO_2; then run update; fi;" \
 				"fi;" \
 			"\0"
 /* boot partition name for dual boot
