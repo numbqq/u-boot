@@ -133,7 +133,7 @@
 			"upgrade_key=" \
 				"if test ${combine_keys} != 1; then " \
 					"if gpio input GPIOAO_2; then " \
-						"echo Found upgrade button pressed; sleep 1;" \
+						"echo Found upgrade button pressed; sleep 3;" \
 						"if gpio input GPIOAO_2; then " \
 							"gpio clear GPIODV_24;" \
 							"update;" \
