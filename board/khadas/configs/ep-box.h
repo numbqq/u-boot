@@ -161,8 +161,8 @@
 				"usb start;fatload usb 0 1080000 u-boot.bin;store rom_write 1080000 0 1000000" \
 			"\0" \
 			"get_mac_wifi=" \
-				"if keyman read mac_wifi ${loadaddr} str; then " \
-					"setenv bootargs ${bootargs} mac_wifi=${mac_wifi};" \
+				"if keyman read mac ${loadaddr} str; then " \
+					"setenv bootargs ${bootargs} mac_wifi=${mac};" \
 				"fi;" \
 			"\0"
 /* boot partition name for dual boot
