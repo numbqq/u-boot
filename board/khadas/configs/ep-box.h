@@ -159,6 +159,11 @@
 				"\0"\
 			"updateu=" \
 				"usb start;fatload usb 0 1080000 u-boot.bin;store rom_write 1080000 0 1000000" \
+			"\0" \
+			"get_mac_wifi=" \
+				"if keyman read mac_wifi ${loadaddr} str; then " \
+					"setenv bootargs ${bootargs} mac_wifi=${mac_wifi};" \
+				"fi;" \
 			"\0"
 /* boot partition name for dual boot
  * - boot: for Android OS
@@ -166,6 +171,7 @@
  */
 #define CONFIG_PREBOOT \
 	"run init_display;" \
+	"run get_mac_wifi;" \
 	"run check_reboot_mode;"\
 	"run combine_key;" \
 	"run upgrade_key;" \
