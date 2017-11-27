@@ -482,6 +482,11 @@ int board_late_init(void){
 
 	if (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) {
 		setenv("maxcpus","4");
+		if (get_cpu_id().package_id == MESON_CPU_PACKAGE_ID_905W) {
+			setenv("cputype","S905W");
+		} else {
+			setenv("cputype","S905X");
+		}
 	}
 	return 0;
 }
