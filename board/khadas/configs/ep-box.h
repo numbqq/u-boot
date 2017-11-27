@@ -107,6 +107,7 @@
 			"fb_width=1920\0" \
 			"fb_height=1080\0" \
 			"combine_keys=0\0" \
+			"boot_dtb=ep-box.dtb\0" \
 			"init_display=" \
 				"osd open;" \
 				"osd clear;" \
@@ -163,6 +164,15 @@
 				"if keyman read mac ${loadaddr} str; then " \
 					"setenv bootargs ${bootargs} mac_wifi=${mac};" \
 				"fi;" \
+			"\0" \
+			"check_cpu_type=" \
+				"if test ${cputype} = S905W; then "\
+					"echo CPU: S905W;" \
+					"setenv boot_dtb ep-box-s905w.dtb;" \
+				"else if test ${cputype} = S905X; then " \
+					"echo CPU: S905X;" \
+					"setenv boot_dtb ep-box.dtb;" \
+				"fi;fi;" \
 			"\0"
 /* boot partition name for dual boot
  * - boot: for Android OS
@@ -170,13 +180,14 @@
  */
 #define CONFIG_PREBOOT \
 	"run init_display;" \
+	"run check_cpu_type;" \
 	"run get_mac_wifi;" \
 	"run check_reboot_mode;"\
 	"run combine_key;" \
 	"run upgrade_key;" \
 	"run check_power_key;"
 
-#define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 5080000 ep-box.dtb;bootm 1080000 10000000 5080000"
+#define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 5080000 ${boot_dtb};bootm 1080000 10000000 5080000"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
