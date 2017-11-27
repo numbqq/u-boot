@@ -1,4 +1,3 @@
-
 int pwm_voltage_table[][2] = {
 	{ 0x1c0000,  860},
 	{ 0x1b0001,  870},
@@ -31,7 +30,7 @@ int pwm_voltage_table[][2] = {
 	{ 0x00001c, 1140}
 };
 
-struct scpi_opp_entry cpu_dvfs_tbl[] = {
+struct scpi_opp_entry cpu_dvfs_tbl_s905x[] = {
 	DVFS( 100000000,  860+50),
 	DVFS( 250000000,  860+50),
 	DVFS( 500000000,  860+50),
@@ -41,7 +40,16 @@ struct scpi_opp_entry cpu_dvfs_tbl[] = {
 	DVFS(1512000000, 1110+30),
 };
 
+struct scpi_opp_entry cpu_dvfs_tbl_s905w[] = {
+	DVFS( 100000000,  860+50),
+	DVFS( 250000000,  860+50),
+	DVFS( 500000000,  860+50),
+	DVFS( 667000000,  900+50),
+	DVFS(1000000000,  940+50),
+	DVFS(1200000000, 1020+50),
+};
 
+struct scpi_opp_entry *cpu_dvfs_tbl = cpu_dvfs_tbl_s905w;
 
 #define P_PIN_MUX_REG1         (*((volatile unsigned *)(0xda834400 + (0x2d << 2))))
 #define P_PIN_MUX_REG2         (*((volatile unsigned *)(0xda834400 + (0x2e << 2))))
@@ -59,6 +67,17 @@ enum pwm_id {
 	pwm_f,
 };
 
+static int is_cpu_s905w(void)
+{
+#define   P_AO_SEC_SD_CFG8_REG (volatile unsigned int *)(0xc8100000 + (0x88 << 2))
+
+	unsigned int cpu_id_reg = readl(P_AO_SEC_SD_CFG8_REG);
+	unsigned int package_id;
+
+	package_id = (cpu_id_reg >> 16) & (0XF0);
+
+	return ((package_id == 0xA0) ? 1 : 0);
+}
 
 void pwm_init(int id)
 {
@@ -109,6 +128,12 @@ void set_dvfs(unsigned int domain, unsigned int index)
 	int cur, to;
 	static int init_flag = 0;
 
+	if (is_cpu_s905w()) {
+		cpu_dvfs_tbl = cpu_dvfs_tbl_s905w;
+	} else {
+		cpu_dvfs_tbl = cpu_dvfs_tbl_s905x;
+	}
+
 	if (!init_flag) {
 		pwm_init(pwm_b);
 		init_flag = 1;
@@ -155,7 +180,14 @@ void get_dvfs_info_board(unsigned int domain,
 		unsigned char *info_out, unsigned int *size_out)
 {
 	unsigned int cnt;
-	cnt = ARRAY_SIZE(cpu_dvfs_tbl);
+
+	if (is_cpu_s905w()) {
+		cpu_dvfs_tbl = cpu_dvfs_tbl_s905w;
+		cnt = ARRAY_SIZE(cpu_dvfs_tbl_s905w);
+	} else {
+		cpu_dvfs_tbl = cpu_dvfs_tbl_s905x;
+		cnt = ARRAY_SIZE(cpu_dvfs_tbl_s905x);
+	}
 
 	buf_opp.latency = 200;
 	buf_opp.count = cnt;
