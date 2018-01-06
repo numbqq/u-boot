@@ -18,4 +18,10 @@
 
 #include <configs/meson-gxbb-common.h>
 
+#ifdef CONFIG_BOOTCOMMAND
+#undef CONFIG_BOOTCOMMAND
+#endif
+
+#define CONFIG_BOOTCOMMAND "if fatload mmc 1 1020000 s905_autoscript; then source 1020000; fi;"
+
 #endif /* __CONFIG_H */
