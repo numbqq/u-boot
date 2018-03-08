@@ -164,7 +164,7 @@
             "run wol_init;" \
 			"run upgrade_key;" \
 			"run vim2_check;"
-#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 Image;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim2.dtb;booti 1080000 10000000 20000000"
+#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim2.dtb;booti 1080000 10000000 20000000"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
