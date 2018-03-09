@@ -51,13 +51,24 @@ static char* read_cfgload(void)
 
 	setenv("filesize", "0");
 
+	// Try to load fatfs partition
 	sprintf(cmd, "fatload mmc 0:1 0x%p boot.ini", (void *)p);
 	run_command(cmd, 0);
 
 	filesize = getenv_ulong("filesize", 16, 0);
 	if (0 == filesize) {
-		printf("cfgload: no boot.ini or empty file\n");
-		return NULL;
+		printf("cfgload: fatload: no boot.ini or empty file\n");
+
+		// Try to load ext4 partition
+		sprintf(cmd, "ext4load mmc 1:5 0x%p /boot/boot.ini", (void *)p);
+		run_command(cmd, 0);
+
+		filesize = getenv_ulong("filesize", 16, 0);
+		if (0 == filesize) {
+			printf("cfgload: ext4load: no boot.ini or empty file\n");
+
+			return NULL;
+		}
 	}
 
 	if (filesize > SZ_BOOTINI) {
