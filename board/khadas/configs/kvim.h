@@ -144,7 +144,7 @@
 	"run combine_key;" \
 	"run upgrade_key;"
 
-#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 kvim.dtb;booti 1080000 10000000 20000000"
+#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
