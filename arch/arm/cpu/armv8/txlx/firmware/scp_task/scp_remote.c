@@ -28,6 +28,21 @@
 #define CONFIG_IR_REMOTE_USE_PROTOCOL 0
 #endif
 
+enum {
+	DECODEMODE_NEC = 0,
+	DECODEMODE_DUOKAN = 1,
+	DECODEMODE_RCMM,
+	DECODEMODE_SONYSIRC,
+	DECODEMODE_SKIPLEADER,
+	DECODEMODE_MITSUBISHI,
+	DECODEMODE_THOMSON,
+	DECODEMODE_TOSHIBA,
+	DECODEMODE_RC5,
+	DECODEMODE_RC6,
+	DECODEMODE_COMCAST,
+	DECODEMODE_SANYO,
+	DECODEMODE_MAX
+};
 typedef struct reg_remote {
 	int reg;
 	unsigned int val;
@@ -51,17 +66,16 @@ static const reg_remote RDECODEMODE_NEC[] = {
 };
 
 static const reg_remote RDECODEMODE_DUOKAN[] = {
-	{AO_MF_IR_DEC_LDR_ACTIVE, 70 << 16 | 30 << 0},
-	{AO_MF_IR_DEC_LDR_IDLE, 50 << 16 | 15 << 0},
+	{AO_MF_IR_DEC_LDR_ACTIVE, 53 << 16 | 50 << 0},
+	{AO_MF_IR_DEC_LDR_IDLE, 31 << 16 | 25 << 0},
 	{AO_MF_IR_DEC_LDR_REPEAT, 30 << 16 | 26 << 0},
-	{AO_MF_IR_DEC_BIT_0, 66 << 16 | 40 << 0},
-	{AO_MF_IR_DEC_REG0, 3 << 28 | (0x4e2 << 12) | 0x13}, //body frame 30ms
-	{AO_MF_IR_DEC_STATUS, (80 << 20) | 66 << 10},
+	{AO_MF_IR_DEC_BIT_0, 61 << 16 | 55 << 0},
+	{AO_MF_IR_DEC_REG0, 3 << 28 | (0x5DC << 12) | 0x13},	//body frame 30ms
+	{AO_MF_IR_DEC_STATUS, (76 << 20) | 69 << 10},
 	{AO_MF_IR_DEC_REG1, 0x9300},
-	{AO_MF_IR_DEC_REG2, 0xb90b},
-	{AO_MF_IR_DEC_DURATN2, 97 << 16 | 80 << 0},
-	{AO_MF_IR_DEC_DURATN3, 120 << 16 | 97 << 0},
-	{AO_MF_IR_DEC_REG3, 5000 << 0},
+	{AO_MF_IR_DEC_REG2, 0x10b},
+	{AO_MF_IR_DEC_DURATN2, 91 << 16 | 79 << 0},
+	{AO_MF_IR_DEC_DURATN3, 111 << 16 | 99 << 0},
 	{CONFIG_END, 0}
 };
 
@@ -186,13 +200,6 @@ void setremotereg(const reg_remote * r)
 int set_remote_mode(int mode)
 {
 	const reg_remote *reg;
-
-	if (mode >= sizeof(remoteregsTab)/sizeof(remoteregsTab[0])) {
-		uart_puts("invalid IR protocol: 0x");
-		uart_put_hex(mode, 16);
-		uart_puts("\n");
-		return -1;
-	}
 	reg = remoteregsTab[mode];
 	while (CONFIG_END != reg->reg)
 		setremotereg(reg++);
@@ -288,8 +295,7 @@ static int remote_detect_key(void)
 	int j;
 	if (((readl(AO_MF_IR_DEC_STATUS)) >> 3) & 0x1) { /*to judge the frame whether is effective or not*/
 			if (readl(AO_MF_IR_DEC_STATUS) & 0x1) {		  /*to judge the frame whether is repeat frame or not*/
-				readl(AO_MF_IR_DEC_FRAME);
-				return 0;
+					return 0;
 			}
 			power_key = readl(AO_MF_IR_DEC_FRAME);
 			for (j = 0; j < CONFIG_IR_REMOTE_POWER_UP_KEY_CNT; j++) {
@@ -303,8 +309,7 @@ static int remote_detect_key(void)
 #ifdef CONFIG_COMPAT_IR
 	if (((readl(AO_IR_DEC_STATUS)) >> 3) & 0x1) { /*to judge the frame whether is effective or not*/
 			if (readl(AO_IR_DEC_STATUS) & 0x1) { 	  /*to judge the frame whether is repeat frame or not*/
-				readl(AO_IR_DEC_FRAME);
-				return 0;
+					return 0;
 			}
 			power_key = readl(AO_IR_DEC_FRAME);
 			for (j = 0; j < CONFIG_IR_REMOTE_POWER_UP_KEY_CNT; j++) {

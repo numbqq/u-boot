@@ -23,9 +23,6 @@
 #ifdef CONFIG_AML_LOCAL_DIMMING
 #include <amlogic/aml_ldim.h>
 #endif
-#ifdef CONFIG_AML_BL_EXTERN
-#include <amlogic/aml_bl_extern.h>
-#endif
 #include "aml_lcd_reg.h"
 #include "aml_lcd_common.h"
 
@@ -33,7 +30,6 @@ static unsigned int bl_off_policy;
 static unsigned int bl_status;
 
 static void bl_set_pwm_gpio_check(struct bl_pwm_config_s *bl_pwm);
-static int aml_bl_init_load_from_bsp(struct bl_config_s *bconf);
 
 static struct bl_config_s *bl_check_valid(void)
 {
@@ -934,9 +930,6 @@ void aml_bl_config_print(void)
 #ifdef CONFIG_AML_LOCAL_DIMMING
 	struct aml_ldim_driver_s *ldim_drv = aml_ldim_get_driver();
 #endif
-#ifdef CONFIG_AML_BL_EXTERN
-	struct aml_bl_extern_driver_s *bl_extern = aml_bl_extern_get_driver();
-#endif
 
 	bconf = lcd_drv->bl_config;
 	LCDPR("bl: name: %s\n", bconf->name);
@@ -1014,17 +1007,8 @@ void aml_bl_config_print(void)
 		}
 		break;
 #endif
-#ifdef CONFIG_AML_BL_EXTERN
 	case BL_CTRL_EXTERN:
-		if (bl_extern) {
-			if (bl_extern->config_print)
-				bl_extern->config_print();
-		} else {
-			LCDPR("bl: invalid bl extern driver\n");
-		}
 		break;
-#endif
-
 	default:
 		LCDPR("bl: invalid backlight control method\n");
 		break;
@@ -1309,20 +1293,6 @@ static int aml_bl_config_load_from_dts(char *dt_addr, unsigned int index, struct
 		aml_ldim_probe(dt_addr, 0);
 		break;
 #endif
-#ifdef CONFIG_AML_BL_EXTERN
-	case BL_CTRL_EXTERN:
-		/* get bl_extern_index from dts */
-		propdata = (char *)fdt_getprop(dt_addr, child_offset, "bl_extern_index", NULL);
-		if (propdata == NULL) {
-			LCDERR("bl: failed to get bl_extern_index\n");
-		} else {
-			bconf->bl_extern_index = be32_to_cpup((u32*)propdata);
-			LCDPR("get bl_extern_index = %d\n", bconf->bl_extern_index);
-		}
-		aml_bl_extern_device_load(dt_addr, bconf->bl_extern_index);
-		break;
-#endif
-
 	default:
 		break;
 	}
@@ -1459,11 +1429,8 @@ static int aml_bl_config_load_from_bsp(struct bl_config_s *bconf)
 		aml_ldim_probe(NULL, 1);
 		break;
 #endif
-#ifdef CONFIG_AML_BL_EXTERN
 	case BL_CTRL_EXTERN:
-		aml_bl_extern_device_load(NULL, bconf->bl_extern_index);
 		break;
-#endif
 	default:
 		if (lcd_debug_print_flag)
 			LCDPR("bl: invalid backlight control method\n");
@@ -1805,17 +1772,6 @@ static int aml_bl_init_load_from_dts(char *dt_addr, struct bl_config_s *bconf)
 	}
 
 	/* pinmux */
-	/* new kernel dts pinctrl detect */
-	propdata = (char *)fdt_getprop(dt_addr, parent_offset, "pinctrl_version", NULL);
-	if (propdata) {
-		temp = be32_to_cpup((u32*)propdata);
-		LCDPR("bl: get pinctrl_version: %d\n", temp);
-		if (temp) {
-			aml_bl_init_load_from_bsp(bconf);
-			goto bl_dts_pinmux_end;
-		}
-	}
-
 	switch (bconf->method) {
 	case BL_CTRL_PWM:
 		bl_pwm = bconf->bl_pwm;
@@ -2022,7 +1978,6 @@ static int aml_bl_init_load_from_dts(char *dt_addr, struct bl_config_s *bconf)
 		break;
 	}
 
-bl_dts_pinmux_end:
 	return 0;
 }
 #endif

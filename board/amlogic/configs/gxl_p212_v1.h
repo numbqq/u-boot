@@ -119,7 +119,7 @@
         "active_slot=_a\0"\
         "boot_part=boot\0"\
         "initargs="\
-            "rootfstype=ramfs init=/init console=ttyS0,115200 no_console_suspend earlycon=aml_uart,0xc81004c0 ramoops.pstore_en=1 ramoops.record_size=0x8000 ramoops.console_size=0x4000 "\
+            "rootfstype=ramfs init=/init console=ttyS0,115200 no_console_suspend earlyprintk=aml-uart,0xc81004c0 ramoops.pstore_en=1 ramoops.record_size=0x8000 ramoops.console_size=0x4000 "\
             "\0"\
         "upgrade_check="\
             "echo upgrade_step=${upgrade_step}; "\
@@ -215,9 +215,6 @@
                 "if keyman read usid ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
                     "setenv serial ${usid};"\
-                "else "\
-                    "setenv bootargs ${bootargs} androidboot.serialno=1234567890;"\
-                    "setenv serial 1234567890;"\
                 "fi;"\
                 "if keyman read mac ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} mac=${mac} androidboot.mac=${mac};"\
@@ -260,7 +257,7 @@
 
 /* ddr */
 #define CONFIG_DDR_SIZE					0 //MB //0 means ddr size auto-detect
-#define CONFIG_DDR_CLK					768  //MHz, Range: 384-1200, should be multiple of 24
+#define CONFIG_DDR_CLK					912  //MHz, Range: 384-1200, should be multiple of 24
 #define CONFIG_DDR4_CLK					1008  //MHz, for boards which use different ddr chip
 /* DDR type setting
  *    CONFIG_DDR_TYPE_LPDDR3   : LPDDR3
@@ -282,7 +279,6 @@
 #define CONFIG_DDR_LOW_POWER			0 //0:disable, 1:enable. ddr clk gate for lp
 #define CONFIG_DDR_ZQ_PD				0 //0:disable, 1:enable. ddr zq power down
 #define CONFIG_DDR_USE_EXT_VREF			0 //0:disable, 1:enable. ddr use external vref
-#define CONFIG_DDR_FUNC_PRINT_WINDOW	0 //0:disable, 1:enable. print ddr training window
 
 /* storage: emmc/nand/sd */
 #define	CONFIG_STORE_COMPATIBLE 1
@@ -398,7 +394,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"p212"
 
 //UBOOT Facotry usb/sdcard burning config

@@ -1,6 +1,6 @@
 
 /*
- * board/amlogic/gxb_p200_v1/firmware/power.c
+ * board/khadas/kvim2/firmware/power.c
  *
  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
  *

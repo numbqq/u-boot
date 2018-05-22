@@ -1,4 +1,4 @@
-/*p200/201	GPIOAO_2  powr on	:0, power_off	:1*/
+/*kvim2	GPIOAO_2  powr on	:0, power_off	:1*/
 
 #define __SUSPEND_FIRMWARE__
 #include <config.h>
@@ -290,7 +290,6 @@ static void pwr_op_init(struct pwr_op *pwr_op)
 	pwr_op->power_on_at_24M = power_on_at_24M;
 	pwr_op->power_off_at_32k = power_off_at_32k;
 	pwr_op->power_on_at_32k = power_on_at_32k;
-
 	pwr_op->power_off_at_mcu = power_off_at_mcu;
 
 	pwr_op->detect_key = detect_key;

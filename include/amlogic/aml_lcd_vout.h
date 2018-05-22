@@ -265,7 +265,6 @@ struct dsi_config_s {
 	unsigned int bit_rate_max; /* MHz */
 	unsigned int bit_rate_min; /* MHz*/
 	unsigned int bit_rate; /* Hz */
-	unsigned int clk_factor; /* bit_rate/pclk */
 	unsigned int factor_numerator;
 	unsigned int factor_denominator; /* 100 */
 	unsigned char operation_mode_init; /* 0=video mode, 1=command mode */
@@ -453,7 +452,6 @@ struct bl_config_s {
 	unsigned int pinmux_set[10][2];
 	//unsigned pinmux_clr_num;
 	unsigned int pinmux_clr[10][2];
-	int bl_extern_index;
 };
 
 extern struct bl_config_s bl_config_dft;

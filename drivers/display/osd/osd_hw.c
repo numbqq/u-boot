@@ -556,51 +556,27 @@ static u32 line_stride_calc(
 {
 	u32 line_stride = 0;
 
-	switch (fmt_mode) {
-		/* 2-bit LUT */
-	case COLOR_INDEX_02_PAL4:
+	/* 2-bit LUT */
+	if (fmt_mode == 0)
 		line_stride = ((hsize<<1)+127)>>7;
-		break;
 	/* 4-bit LUT */
-	case COLOR_INDEX_04_PAL16:
+	else if (fmt_mode == 1)
 		line_stride = ((hsize<<2)+127)>>7;
-		break;
-		/* 8-bit LUT */
-	case COLOR_INDEX_08_PAL256:
+	/* 8-bit LUT */
+	else if (fmt_mode == 2)
 		line_stride = ((hsize<<3)+127)>>7;
-		break;
-		/* 4:2:2, 32-bit per 2 pixels */
-	case COLOR_INDEX_YUV_422:
+	/* 4:2:2, 32-bit per 2 pixels */
+	else if (fmt_mode == 3)
 		line_stride = ((((hsize+1)>>1)<<5)+127)>>7;
-		break;
-		/* 16-bit LUT */
-	case COLOR_INDEX_16_655:
-	case COLOR_INDEX_16_844:
-	case COLOR_INDEX_16_6442:
-	case COLOR_INDEX_16_4444_R:
-	case COLOR_INDEX_16_4642_R:
-	case COLOR_INDEX_16_1555_A:
-	case COLOR_INDEX_16_4444_A:
-	case COLOR_INDEX_16_565:
+	/* 16-bit LUT */
+	else if (fmt_mode == 4)
 		line_stride = ((hsize<<4)+127)>>7;
-		break;
-		/* 32-bit LUT */
-	case COLOR_INDEX_32_BGRA:
-	case COLOR_INDEX_32_ABGR:
-	case COLOR_INDEX_32_RGBA:
-	case COLOR_INDEX_32_ARGB:
+	/* 32-bit LUT */
+	else if (fmt_mode == 5)
 		line_stride = ((hsize<<5)+127)>>7;
-		break;
-	case COLOR_INDEX_24_6666_A:
-	case COLOR_INDEX_24_6666_R:
-	case COLOR_INDEX_24_8565:
-	case COLOR_INDEX_24_5658:
-	case COLOR_INDEX_24_888_B:
-	case COLOR_INDEX_24_RGB:
-		/* 24-bit LUT */
+	/* 24-bit LUT */
+	else if (fmt_mode == 7)
 		line_stride = ((hsize<<4)+(hsize<<3)+127)>>7;
-		break;
-	}
 	/* need wr ddr is 32bytes aligned */
 	if (stride_align_32bytes)
 		line_stride = ((line_stride+1)>>1)<<1;
@@ -664,10 +640,6 @@ void osd_setup_hw(u32 index,
 			disp_data.y_end = disp_end_y;
 		}
 	}
-	if (color != osd_hw.color_info[index]) {
-		update_color_mode = 1;
-		osd_hw.color_info[index] = color;
-	}
 	if (osd_hw.fb_gem[index].addr != fbmem
 	    || osd_hw.fb_gem[index].width != w
 	    ||  osd_hw.fb_gem[index].height != yres_virtual) {
@@ -683,12 +655,12 @@ void osd_setup_hw(u32 index,
 		osd_logd("osd[%d] canvas.height=%d\n",
 			 index, osd_hw.fb_gem[index].height);
 		if (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_AXG) {
-			u32 line_stride, fmt_mode, bpp;
+			u32 line_stride, fmt_mode;
 
-			bpp = color->bpp/8;
-			fmt_mode = color->color_index;
+			fmt_mode =
+				osd_hw.color_info[index]->hw_colormat << 2;
 			line_stride = line_stride_calc(fmt_mode,
-				osd_hw.fb_gem[index].width / bpp, 1);
+				osd_hw.fb_gem[index].width, 1);
 			VSYNCOSD_WR_MPEG_REG(
 				VIU_OSD1_BLK1_CFG_W4,
 				osd_hw.fb_gem[index].addr);
@@ -706,6 +678,10 @@ void osd_setup_hw(u32 index,
 			      CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_LINEAR);
 		}
 #endif
+	}
+	if (color != osd_hw.color_info[index]) {
+		update_color_mode = 1;
+		osd_hw.color_info[index] = color;
 	}
 	/* osd blank only control by /sys/class/graphcis/fbx/blank */
 #if 0

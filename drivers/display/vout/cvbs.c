@@ -30,14 +30,12 @@ enum CVBS_MODE_e
 {
 	VMODE_PAL,
 	VMODE_NTSC,
-	VMODE_PAL_M,
-	VMODE_PAL_N,
-	VMODE_NTSC_M,
 	VMODE_MAX
 };
 
 unsigned int cvbs_mode = VMODE_MAX;
 
+static cpu_id_t cpu_id;
 /*----------------------------------------------------------------------------*/
 // interface for registers of soc
 
@@ -150,38 +148,38 @@ static int check_cpu_type(unsigned int cpu_type)
 
 static bool inline is_equal_after_meson_cpu(unsigned int id)
 {
-	return (get_cpu_id().family_id >= id)?1:0;
+	return (cpu_id.family_id >= id)?1:0;
 }
 
 static bool inline is_meson_gxl_cpu(void)
 {
-	return (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL)?
+	return (cpu_id.family_id == MESON_CPU_MAJOR_ID_GXL)?
 		1:0;
 }
 
 static bool inline is_meson_txl_cpu(void)
 {
-	return (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_TXL)?
+	return (cpu_id.family_id == MESON_CPU_MAJOR_ID_TXL)?
 		1:0;
 }
 
 static bool inline is_meson_gxm_cpu(void)
 {
-	return (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXM)?
+	return (cpu_id.family_id == MESON_CPU_MAJOR_ID_GXM)?
 		1:0;
 
 }
 static bool inline is_meson_gxl_package_905X(void)
 {
-	return ((get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) &&
-		(get_cpu_id().package_id == MESON_CPU_PACKAGE_ID_905X))?
+	return ((cpu_id.family_id == MESON_CPU_MAJOR_ID_GXL) &&
+		(cpu_id.package_id == MESON_CPU_PACKAGE_ID_905X))?
 		1:0;
 }
 
 static bool inline is_meson_gxl_package_905L(void)
 {
-	return ((get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) &&
-		(get_cpu_id().package_id == MESON_CPU_PACKAGE_ID_905L))?
+	return ((cpu_id.family_id == MESON_CPU_MAJOR_ID_GXL) &&
+		(cpu_id.package_id == MESON_CPU_PACKAGE_ID_905L))?
 		1:0;
 }
 
@@ -562,7 +560,7 @@ static void cvbs_performance_enhancement(int mode)
 	unsigned int type = 0;
 	const struct reg_s *s = NULL;
 
-	if (VMODE_PAL != mode && VMODE_PAL_M != mode && VMODE_PAL_N != mode)
+	if (VMODE_PAL != mode)
 		return;
 
 	if (0xff == index)
@@ -634,12 +632,6 @@ static int cvbs_config_enci(int vmode)
 		cvbs_write_vcbus_array((struct reg_s*)&tvregs_576cvbs_enc[0]);
 	else if (VMODE_NTSC == vmode)
 		cvbs_write_vcbus_array((struct reg_s*)&tvregs_480cvbs_enc[0]);
-	else if (VMODE_NTSC_M == vmode)
-		cvbs_write_vcbus_array((struct reg_s*)&tvregs_480cvbs_enc[0]);
-	else if (VMODE_PAL_M == vmode)
-		cvbs_write_vcbus_array((struct reg_s*)&tvregs_pal_m_enc[0]);
-	else if (VMODE_PAL_N == vmode)
-		cvbs_write_vcbus_array((struct reg_s*)&tvregs_pal_n_enc[0]);
 
 	cvbs_performance_enhancement(vmode);
 
@@ -663,24 +655,6 @@ int cvbs_set_vmode(char* vmode_name)
 		cvbs_config_clock();
 		cvbs_set_vdac(1);
 		return 0;
-	} else if (!strncmp(vmode_name, "ntsc_m", strlen("ntsc_m"))) {
-		cvbs_mode = VMODE_NTSC_M;
-		cvbs_config_enci(VMODE_NTSC_M);
-		cvbs_config_clock();
-		cvbs_set_vdac(1);
-		return 0;
-	} else if (!strncmp(vmode_name, "pal_m", strlen("pal_m"))) {
-		cvbs_mode = VMODE_PAL_M;
-		cvbs_config_enci(VMODE_PAL_M);
-		cvbs_config_clock();
-		cvbs_set_vdac(1);
-		return 0;
-	} else if (!strncmp(vmode_name, "pal_n", strlen("pal_n"))) {
-		cvbs_mode = VMODE_PAL_N;
-		cvbs_config_enci(VMODE_PAL_N);
-		cvbs_config_clock();
-		cvbs_set_vdac(1);
-		return 0;
 	} else {
 		printf("[%s] is invalid for cvbs.\n", vmode_name);
 		return -1;
@@ -693,12 +667,14 @@ int cvbs_set_vmode(char* vmode_name)
 // list for valid video mode
 void cvbs_show_valid_vmode(void)
 {
-	printf("576cvbs\n""480cvbs\n""ntsc_m\n""pal_m\n""pal_n\n");
+	printf("576cvbs\n""480cvbs\n");
 	return;
 }
 
 void cvbs_init(void)
 {
+	cpu_id = get_cpu_id();
+
 #ifdef CONFIG_CVBS_PERFORMANCE_COMPATIBILITY_SUPPORT
 	cvbs_performance_config();
 #endif

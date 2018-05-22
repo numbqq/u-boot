@@ -33,7 +33,7 @@
 #define REG_LED_SYSTEM_ON_MODE  0x28
 #define REG_LED_SYSTEM_OFF_MODE 0x29
 #define REG_ADC                 0x2a
-#define REG_MAC_SWITCH          0x2c
+#define REG_MAC_SWITCH          0x2d
 
 #define REG_PASSWD_CUSTOM       0x40
 
@@ -60,6 +60,9 @@
 
 #define BOOT_MODE_SPI       0
 #define BOOT_MODE_EMMC      1
+
+#define FORCERESET_WOL      0
+#define FORCERESET_GPIO     1
 
 #define VERSION_LENGHT        2
 #define USID_LENGHT           6
@@ -130,23 +133,40 @@ static unsigned char chartonum(char c)
 	return 0;
 }
 
-static void get_wol(void)
+static int get_forcereset_wol(bool is_print)
 {
 	int enable;
 	enable = kbi_i2c_read(REG_BOOT_EN_WOL);
-	printf("boot wol: %s\n", enable==1 ? "enable" : "disable");
-	setenv("wol_enable", enable == 1 ? "1" : "0");
+	if (is_print)
+	printf("wol forcereset: %s\n", enable&0x02 ? "enable":"disable");
+	setenv("wol_forcereset", enable&0x02 ? "1" : "0");
+	return enable;
+
 }
 
-static void set_wol(int enable)
+static int get_wol(bool is_print)
+{
+	int enable;
+	enable = kbi_i2c_read(REG_BOOT_EN_WOL);
+	if (is_print)
+	printf("boot wol: %s\n", enable&0x01 ? "enable":"disable");
+	setenv("wol_enable", enable&0x01 ?"1" : "0");
+	return enable;
+}
+
+static void set_wol(bool is_shutdown, int enable)
 {
 	char cmd[64];
 	int mode;
 
-	if (enable == 1) {
+	if ((enable&0x01) != 0) {
 
 	int mac_addr[MAC_LENGHT] = {0};
-	run_command("phyreg w 0 0", 0);
+	if (is_shutdown)
+		run_command("phyreg w 0 0", 0);
+	else
+		run_command("phyreg w 0 0x1040", 0);
+
 	run_command("phyreg w 31 0xd40", 0);
 	run_command("phyreg w 22 0x20", 0);
 	run_command("phyreg w 31 0", 0);
@@ -209,7 +229,7 @@ static void set_wol(int enable)
 
 	sprintf(cmd, "i2c mw %x %x %d 1", CHIP_ADDR, REG_BOOT_EN_WOL, enable);
 	run_command(cmd, 0);
-	printf("%s: %d\n", __func__, enable);
+//	printf("%s: %d\n", __func__, enable);
 }
 
 static void get_version(void)
@@ -260,14 +280,36 @@ static void get_mac(void)
 
 static void get_usid(void)
 {
+	char serial[64];
 	int usid[USID_LENGHT] = {};
-	int i;
+	int i, mode;
+#ifdef CONFIG_USID_FROM_ETH_MAC
+	mode = kbi_i2c_read(REG_MAC_SWITCH);
+
+	if (mode == 1) {
+		kbi_i2c_read_block(REG_MAC, MAC_LENGHT, usid);
+	} else {
+		run_command("efuse mac", 0);
+		char *s = getenv("eth_mac");
+		if ((s != NULL) && (strcmp(s, "00:00:00:00:00:00") != 0)) {
+			for (i = 0; i < 6 && s[0] != '\0' && s[1] != '\0'; i++) {
+			usid[i] = chartonum(s[0]) << 4 | chartonum(s[1]);
+			s +=3;
+			}
+		} else {
+			kbi_i2c_read_block(REG_MAC, MAC_LENGHT, usid);
+		}
+	}
+#else
 	kbi_i2c_read_block(REG_USID, USID_LENGHT, usid);
+#endif
 	printf("usid: ");
 	for (i=0; i< USID_LENGHT; i++) {
 		printf("%x",usid[i]);
 	}
 	printf("\n");
+	sprintf(serial, "%02x%02x%02x%02x%02x%02x",usid[0],usid[1],usid[2],usid[3],usid[4],usid[5]);
+	setenv("usid", serial);
 }
 
 static void get_adc(void)
@@ -392,11 +434,22 @@ static void set_key(int enable)
 	run_command(cmd, 0);
 }
 
-static void get_gpio(void)
+static int get_forcereset_gpio(bool is_print)
 {
 	int enable;
 	enable = kbi_i2c_read(REG_BOOT_EN_GPIO);
-	printf("boot gpio: %s\n", enable==1 ? "enable" : "disable" );
+	if (is_print)
+	printf("gpio forcereset: %s\n", enable&0x02 ? "enable" : "disable" );
+	return enable;
+}
+
+static int get_gpio(bool is_print)
+{
+	int enable;
+	enable = kbi_i2c_read(REG_BOOT_EN_GPIO);
+	if (is_print)
+	printf("boot gpio: %s\n", enable&0x01 ? "enable" : "disable" );
+	return enable;
 }
 
 static void set_gpio(int enable)
@@ -409,7 +462,7 @@ static void set_gpio(int enable)
 static void get_boot_enable(int type)
 {
 	if (type == BOOT_EN_WOL)
-		get_wol();
+		get_wol(true);
 	else if (type == BOOT_EN_RTC)
 		get_rtc();
 	else if (type == BOOT_EN_IR)
@@ -419,13 +472,17 @@ static void get_boot_enable(int type)
 	else if (type == BOOT_EN_KEY)
 		get_key();
 	else
-		get_gpio();
+		get_gpio(true);
 }
 
 static void set_boot_enable(int type, int enable)
 {
+	int state = 0;
 	if (type == BOOT_EN_WOL)
-		set_wol(enable);
+	{
+		state = get_wol(false);
+		set_wol(false, enable|(state&0x02));
+	}
 	else if (type == BOOT_EN_RTC)
 		set_rtc(enable);
 	else if (type == BOOT_EN_IR)
@@ -434,8 +491,39 @@ static void set_boot_enable(int type, int enable)
 		set_dcin(enable);
 	else if (type == BOOT_EN_KEY)
 		set_key(enable);
+	else {
+		state = get_gpio(false);
+		set_gpio(enable|(state&0x02));
+	}
+}
+
+static void get_forcereset_enable(int type)
+{
+	if (type == FORCERESET_GPIO)
+		get_forcereset_gpio(true);
+	else if (type == FORCERESET_WOL)
+		get_forcereset_wol(true);
 	else
-		set_gpio(enable);
+		printf("get forcereset err=%d\n", type);
+}
+
+static int set_forcereset_enable(int type, int enable)
+{
+	int state = 0;
+	if (type == FORCERESET_GPIO)
+	{
+		state = get_forcereset_gpio(false);
+		set_gpio((state&0x01)|(enable<<1));
+	}
+	else if (type == FORCERESET_WOL)
+	{
+		state = get_forcereset_wol(false);
+		set_wol(false, (state&0x01)|(enable<<1));
+	} else {
+		printf("set forcereset err=%d\n", type);
+		return CMD_RET_USAGE;
+	}
+	return 0;
 }
 
 static void get_blue_led_mode(int type)
@@ -472,6 +560,28 @@ static int set_blue_led_mode(int type, int mode)
     return 0;
 }
 
+static int do_kbi_init(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+{
+	int enable = get_wol(false);
+	if ((enable&0x01) != 0)
+		set_wol(false, enable);
+	return 0;
+}
+
+static int do_kbi_resetflag(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+{
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	if (strcmp(argv[1], "1") == 0) {
+		run_command("i2c mw 0x18 0x87 1 1", 0);
+	} else if (strcmp(argv[1], "0") == 0) {
+		run_command("i2c mw 0x18 0x87 0 1", 0);
+	} else {
+		return CMD_RET_USAGE;
+	}
+	return 0;
+}
 
 static int do_kbi_version(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
@@ -512,6 +622,9 @@ static int do_kbi_switchmac(cmd_tbl_t * cmdtp, int flag, int argc, char * const 
 		return CMD_RET_USAGE;
 
 	if (strcmp(argv[1], "w") == 0) {
+		if (argc < 3)
+			return CMD_RET_USAGE;
+
 		if (strcmp(argv[2], "0") == 0) {
 			set_switch_mac(0);
 		} else if (strcmp(argv[2], "1") == 0) {
@@ -530,14 +643,14 @@ static int do_kbi_switchmac(cmd_tbl_t * cmdtp, int flag, int argc, char * const 
 static int do_kbi_led(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret = 0;
-	if (argc < 2)
+	if (argc < 3)
 		return CMD_RET_USAGE;
 
 	if (strcmp(argv[1], "systemoff") ==0) {
 		if (strcmp(argv[2], "r") == 0) {
 			get_blue_led_mode(LED_SYSTEM_OFF);
 		} else if (strcmp(argv[2], "w") == 0) {
-			if (argc <3)
+			if (argc < 4)
 				return CMD_RET_USAGE;
 			if (strcmp(argv[3], "breathe") == 0) {
 				ret = set_blue_led_mode(LED_SYSTEM_OFF, LED_BREATHE_MODE);
@@ -556,7 +669,7 @@ static int do_kbi_led(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 		if (strcmp(argv[2], "r") == 0) {
 			get_blue_led_mode(LED_SYSTEM_ON);
 		} else if (strcmp(argv[2], "w") == 0) {
-			if (argc <3)
+			if (argc <4)
 				return CMD_RET_USAGE;
 			if (strcmp(argv[3], "breathe") == 0) {
 				ret = set_blue_led_mode(LED_SYSTEM_ON, LED_BREATHE_MODE);
@@ -577,16 +690,61 @@ static int do_kbi_led(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 	return ret;
 }
 
+static int do_kbi_forcereset(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret = 0;
+	if (argc < 3)
+		return CMD_RET_USAGE;
+
+	if (strcmp(argv[1], "wol") ==0) {
+		if (strcmp(argv[2], "r") == 0) {
+			get_forcereset_enable(FORCERESET_WOL);
+		} else if (strcmp(argv[2], "w") == 0) {
+			if (argc < 4)
+				return CMD_RET_USAGE;
+			if (strcmp(argv[3], "1") == 0) {
+				ret = set_forcereset_enable(FORCERESET_WOL, 1);
+			} else if (strcmp(argv[3], "0") == 0) {
+				ret = set_forcereset_enable(FORCERESET_WOL, 0);
+			} else {
+				ret =  CMD_RET_USAGE;
+			}
+		}
+	} else if (strcmp(argv[1], "gpio") ==0) {
+
+		if (strcmp(argv[2], "r") == 0) {
+			get_forcereset_enable(FORCERESET_GPIO);
+		} else if (strcmp(argv[2], "w") == 0) {
+			if (argc <4)
+				return CMD_RET_USAGE;
+			if (strcmp(argv[3], "1") == 0) {
+				ret = set_forcereset_enable(FORCERESET_GPIO, 1);
+			} else if (strcmp(argv[3], "0") == 0) {
+				ret = set_forcereset_enable(FORCERESET_GPIO, 0);
+			} else {
+				ret =  CMD_RET_USAGE;
+			}
+		}
+
+	} else {
+		return CMD_RET_USAGE;
+	}
+	return ret;
+}
+
 static int do_kbi_poweroff(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
 	printf("%s\n",__func__);
+	int enable = get_wol(false);
+	if ((enable&0x03) != 0)
+		set_wol(true, enable);
 	run_command("gpio set GPIODV_2", 0);
 	return 0;
 }
 
 static int do_kbi_trigger(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
-	if (argc < 2)
+	if (argc < 3)
 		return CMD_RET_USAGE;
 
 	if (strcmp(argv[2], "r") == 0) {
@@ -606,7 +764,7 @@ static int do_kbi_trigger(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 		else
 			return CMD_RET_USAGE;
 	} else if (strcmp(argv[2], "w") == 0) {
-		if (argc < 3)
+		if (argc < 4)
 			return CMD_RET_USAGE;
 		if ((strcmp(argv[3], "1") != 0) && (strcmp(argv[3], "0") != 0))
 			return CMD_RET_USAGE;
@@ -668,10 +826,10 @@ static int do_kbi_trigger(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 
 static int do_kbi_bootmode(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
-	if (argc < 1)
+	if (argc < 2)
 		return CMD_RET_USAGE;
 	if (strcmp(argv[1], "w") == 0) {
-		if (argc < 2)
+		if (argc < 3)
 			return CMD_RET_USAGE;
 		if (strcmp(argv[2], "emmc") == 0) {
 			set_bootmode(BOOT_MODE_EMMC);
@@ -691,6 +849,8 @@ static int do_kbi_bootmode(cmd_tbl_t * cmdtp, int flag, int argc, char * const a
 	return 0;
 }
 static cmd_tbl_t cmd_kbi_sub[] = {
+	U_BOOT_CMD_MKENT(init, 1, 1, do_kbi_init, "", ""),
+	U_BOOT_CMD_MKENT(resetflag, 2, 1, do_kbi_resetflag, "", ""),
 	U_BOOT_CMD_MKENT(usid, 1, 1, do_kbi_usid, "", ""),
 	U_BOOT_CMD_MKENT(version, 1, 1, do_kbi_version, "", ""),
 	U_BOOT_CMD_MKENT(adc, 1, 1, do_kbi_adc, "", ""),
@@ -701,6 +861,7 @@ static cmd_tbl_t cmd_kbi_sub[] = {
 	U_BOOT_CMD_MKENT(led, 4, 1, do_kbi_led, "", ""),
 	U_BOOT_CMD_MKENT(trigger, 4, 1, do_kbi_trigger, "", ""),
 	U_BOOT_CMD_MKENT(bootmode, 3, 1, do_kbi_bootmode, "", ""),
+	U_BOOT_CMD_MKENT(forcereset, 4, 1, do_kbi_forcereset, "", ""),
 };
 
 static int do_kbi(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
@@ -734,6 +895,10 @@ static char kbi_help_text[] =
 		"\n"
 		"kbi led [systemoff|systemon] w <off|on|breathe|heartbeat> - set blue led mode\n"
 		"kbi led [systemoff|systemon] r - read blue led mode\n"
+		"\n"
+		"kbi forcereset [wol|gpio] w <0|1> - disable/enable force-reset\n"
+		"kbi forcereset [wol|gpio] r - read state of force-reset\n"
+		"[notice: the wol|gpio boot trigger must be enabled if you want to enable force-reset]\n"
 		"\n"
 		"kbi bootmode w <emmc|spi> - set bootmode to emmc or spi\n"
 		"kbi bootmode r - read current bootmode\n"

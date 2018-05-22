@@ -572,10 +572,7 @@ static void lcd_set_pll_txl(struct lcd_clk_config_s *cConf)
 	lcd_hiu_write(HHI_HPLL_CNTL, pll_ctrl);
 	lcd_hiu_write(HHI_HPLL_CNTL2, pll_ctrl2);
 	lcd_hiu_write(HHI_HPLL_CNTL3, pll_ctrl3);
-	if (cConf->pll_mode)
-		lcd_hiu_write(HHI_HPLL_CNTL4, 0x0d160000);
-	else
-		lcd_hiu_write(HHI_HPLL_CNTL4, 0x0c8e0000);
+	lcd_hiu_write(HHI_HPLL_CNTL4, 0x0c8e0000);
 	lcd_hiu_write(HHI_HPLL_CNTL5, 0x001fa729);
 	lcd_hiu_write(HHI_HPLL_CNTL6, 0x01a31500);
 	lcd_hiu_setb(HHI_HPLL_CNTL, 1, LCD_PLL_RST_TXL, 1);
@@ -1274,11 +1271,6 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 		goto generate_clk_done_txl;
 	}
 
-	if (pconf->lcd_timing.clk_auto == 2)
-		cConf->pll_mode = 1;
-	else
-		cConf->pll_mode = 0;
-
 	switch (pconf->lcd_basic.lcd_type) {
 	case LCD_TTL:
 		clk_div_sel = CLK_DIV_SEL_1;
@@ -1569,7 +1561,6 @@ static void lcd_clk_generate_axg(struct lcd_config_s *pconf)
 				LCDPR("fout=%d, xd=%d\n", cConf->fout, xd);
 
 			pconf->lcd_control.mipi_config->bit_rate = pll_fout * 1000;
-			pconf->lcd_control.mipi_config->clk_factor = xd;
 			cConf->xd = xd;
 			done = check_pll_axg(cConf, pll_fout);
 			if (done)

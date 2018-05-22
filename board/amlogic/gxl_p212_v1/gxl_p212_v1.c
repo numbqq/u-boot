@@ -42,6 +42,7 @@
 #include <asm/arch/eth_setup.h>
 #include <phy.h>
 #include <asm/cpu_id.h>
+#include <asm/arch/mailbox.h>
 #ifdef DTB_BIND_KERNEL
 #include "storage.h"
 #endif
@@ -367,9 +368,8 @@ int board_init(void)
 {
     //Please keep CONFIG_AML_V2_FACTORY_BURN at first place of board_init
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if ((0x1b8ec003 != readl(P_PREG_STICKY_REG2)) && (0x1b8ec004 != readl(P_PREG_STICKY_REG2))) {
-		aml_try_factory_usb_burning(0, gd->bd);
-	}
+	if (0x1b8ec003 != readl(P_PREG_STICKY_REG2))
+        aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 	/*for LED*/
 	//clear pinmux
@@ -386,10 +386,7 @@ int board_init(void)
 	board_usb_init(&g_usb_config_GXL_skt,BOARD_USB_MODE_HOST);
 #endif /*CONFIG_USB_XHCI_AMLOGIC*/
 	canvas_init();
-#ifdef CONFIG_AML_VPU
-	vpu_probe();
-#endif
-	vpp_init();
+
 #ifndef CONFIG_AML_IRDETECT_EARLY
 #ifdef CONFIG_AML_HDMITX20
 	hdmi_tx_set_hdmi_5v();
@@ -417,6 +414,116 @@ U_BOOT_CMD(hdmi_init, CONFIG_SYS_MAXARGS, 0, do_hdmi_init,
 #endif
 #endif
 #ifdef CONFIG_BOARD_LATE_INIT
+#define SAMPLE_BIT_MASK 0xfff
+#define NUM 50
+#define BASE_CH7 1843
+#define P_SAR_ADC_REG0		    (volatile unsigned int *)0xc1108680
+#define P_SAR_ADC_CHAN_LIST	(volatile unsigned int *)0xc1108684
+#define P_SAR_ADC_REG3			(volatile unsigned int *)0xc110868c
+#define P_SAR_ADC_FIFO_RD			(volatile unsigned int *)0xc1108698
+#define P_SAR_ADC_DETECT_IDLE_SW	(volatile unsigned int *)0xc11086a4
+#define P_SAR_ADC_REG13			(volatile unsigned int *)0xc11086b4
+#if 0
+#define dbgv(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define dbgv(fmt, ...)
+#endif
+void quicksort1(unsigned int a[], int numsize)
+{
+	int i = 0, j = numsize-1;
+	int val = a[0];
+	if (numsize > 1) {
+		while (i < j) {
+			for (; j > i; j--)
+				if (a[j] < val) {
+					a[i] = a[j];
+					break;
+				}
+			for (; i < j; i++)
+				if (a[i] > val) {
+					a[j] = a[i];
+					break;
+				}
+		}
+	a[i] = val;
+	quicksort1(a, i);
+	quicksort1(a+i+1, numsize-1-i);
+}
+}
+int check_vref(void)
+{
+	int i,count;
+	unsigned int value[50];
+	unsigned int value7=0;
+	unsigned int bak, bak_reg3;
+	unsigned int vref_efuse = (readl(SEC_AO_SEC_SD_CFG12)>>19)&(0x1f);
+
+	if (!vref_efuse) {
+		dbgv("This chip has no FT vref, no need to check, PASS\n");
+		return 0;
+	}
+	//run_command("md 0xc1108680 0x10", 0);
+	dbgv("SEC_AO_SEC_SD_CFG12: 0x%x\n",readl(SEC_AO_SEC_SD_CFG12));
+	dbgv("vref_efuse: %d\n",vref_efuse);
+
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	bak = (readl(P_SAR_ADC_REG13)>>8)&0x3f; /*back up SAR_ADC_REG13[13:8]*/
+	writel((readl(P_SAR_ADC_REG13)&(~(0x3f<<8)))|(vref_efuse<<9), P_SAR_ADC_REG13);
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	writel(0x00000007, P_SAR_ADC_CHAN_LIST);/*ch7*/
+	//writel(0xc000c|(0x7<<23)|(0x7<<7), P_SAR_ADC_DETECT_IDLE_SW);/*channel 7*/
+	bak_reg3 = readl(P_SAR_ADC_REG3);
+	writel((readl(P_SAR_ADC_REG3)&(~(0x7<<23)))|(0x2<<23), P_SAR_ADC_REG3);/*AVDD18/2*/
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	//run_command("md 0xc1108680 0x10", 0);
+	for (i=0;i<NUM;i++) {
+		writel((readl(P_SAR_ADC_REG0)&(~(1<<0))), P_SAR_ADC_REG0);
+		writel((readl(P_SAR_ADC_REG0)|(1<<0)), P_SAR_ADC_REG0);
+		writel((readl(P_SAR_ADC_REG0)|(1<<2)), P_SAR_ADC_REG0);/*start sample*/
+		count = 0;
+		do {
+			udelay(20);
+			count++;
+		} while ((readl(P_SAR_ADC_REG0) & (0x7<<28))
+		&& (count < 100));/*finish sample?*/
+		if (count == 100) {
+			printf("%s : ch7 wait finish sample timeout!\n",__func__);
+			return -1;
+		}
+		value[i] = readl(P_SAR_ADC_FIFO_RD); /*read saradc*/
+		if (((value[i]>>12) & 0x7) == 0x7)
+			value[i] = value[i]&SAMPLE_BIT_MASK;
+		else {
+			printf("%s : not ch7! sample err!\n",__func__);
+			return -1;
+		}
+	}
+	quicksort1(value, NUM);
+	for (i = 0; i < NUM; i++)
+		dbgv("%d ", value[i]);
+	dbgv("\n");
+	for (i = 2; i < NUM-2; i++)
+		value7 += value[i];
+	value7 = value7/(NUM-4);
+	dbgv("the average ch7 adc=%d\n", value7);
+	dbgv("vref_efuse: %d\n",vref_efuse);
+	if ((value7 < (BASE_CH7*94/100)) || (value7 > (BASE_CH7*106/100))) { //1843
+		printf("the average ch7 : %d out of range: %d ~ %d\n",
+			value7, (BASE_CH7*94/100), (BASE_CH7*106/100));
+		printf("replace FT vref...\n");
+		thermal_calibration(4, bak>>1); /*[13:9]*/
+	}
+	/*write back SAR_ADC_REG13[13:8]*/
+	writel(((readl(P_SAR_ADC_REG13))&(~(0x3f<<8)))|
+				((bak & 0x3f)<<8),
+				P_SAR_ADC_REG13);
+	writel(bak_reg3, P_SAR_ADC_REG3);
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	dbgv("SEC_AO_SEC_SD_CFG12: 0x%x\n",readl(SEC_AO_SEC_SD_CFG12));
+	//run_command("md 0xc1108680 0x10", 0);
+	return 0;
+}
+
 int board_late_init(void){
 	//update env before anyone using it
 	run_command("get_rebootmode; echo reboot_mode=${reboot_mode}; "\
@@ -425,11 +532,6 @@ int board_late_init(void){
 	run_command("if itest ${upgrade_step} == 1; then "\
 				"defenv_reserv; setenv upgrade_step 2; saveenv; fi;", 0);
 
-#ifndef CONFIG_AML_IRDETECT_EARLY
-	/* after  */
-	run_command("cvbs init;hdmitx hpd", 0);
-	run_command("vout output $outputmode", 0);
-#endif
 	/*add board late init function here*/
 #ifndef DTB_BIND_KERNEL
 	int ret;
@@ -461,12 +563,23 @@ int board_late_init(void){
 				}
 		}
 #endif// #ifndef DTB_BIND_KERNEL
+
+#ifdef CONFIG_AML_VPU
+	vpu_probe();
+#endif
+	vpp_init();
+#ifndef CONFIG_AML_IRDETECT_EARLY
+	/* after  */
+	run_command("cvbs init;hdmitx hpd", 0);
+	run_command("vout output $outputmode", 0);
+#endif
+
 #ifdef CONFIG_AML_V2_FACTORY_BURN
 	if (0x1b8ec003 == readl(P_PREG_STICKY_REG2))
 		aml_try_factory_usb_burning(1, gd->bd);
 	aml_try_factory_sdcard_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
-
+	ret = check_vref();
 	if (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) {
 		setenv("maxcpus","4");
 	}

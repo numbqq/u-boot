@@ -123,15 +123,13 @@ static int do_rom_ops(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 			opts.length = nand->size;
 		} else {
 			cpy = (ulong)simple_strtoul(argv[base], NULL, 16);
-			copy_num = CONFIG_BL2_COPY_NUM;
-			if (cpy >= copy_num) {
-				printk("max cpies %d\n", copy_num);
+			if (cpy >= 4) {
+				printk("max cpies %d\n", 4);
 				ret = CMD_RET_USAGE;
 				goto _out;
 			}
-			opts.offset = nand->size / copy_num * cpy;
-			opts.length = nand->size / copy_num;
-
+			opts.offset = cpy * 256 * nand->writesize;
+			opts.length = 256 * nand->writesize;
 		}
 	#else
 		/* whole boot area size */
@@ -192,9 +190,7 @@ static int do_bl2_ops(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 		sub = argv[2];
 		base = 3;
 	}
-	if (!strcmp("info", sub)) {
-		printk("bl2 infos:\ncopies %d\n", CONFIG_BL2_COPY_NUM);
-	} else if (!strcmp("read", sub)) {
+	if (!strcmp("read", sub)) {
 		printk("%s() %s\n", __func__, sub);
 		if (argc - base < 3) {
 			ret = CMD_RET_USAGE;
@@ -241,17 +237,15 @@ static int do_bl2_ops(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 			/* whole boot area size */
 			opts.length = nand->size;
 		} else {
-			copy_num = CONFIG_BL2_COPY_NUM;
 			cpy = (ulong)simple_strtoul(argv[base], NULL, 16);
-			if (cpy >= copy_num) {
-				printk("max cpies %d\n", copy_num);
+			if (cpy >= 4) {
+				printk("max cpies %d\n", 4);
 				ret = CMD_RET_USAGE;
 				goto _out;
 			}
-			opts.offset = nand->size / copy_num * cpy;
-			opts.length = nand->size / copy_num;
+			opts.offset = cpy * 256 * nand->writesize;
+			opts.length = 256 * nand->writesize;
 		}
-		printf("%s, off 0x%llx, len 0x%llx\n", __func__, opts.offset, opts.length);
 
 		opts.jffs2  = 0;
 		opts.quiet  = 0;
@@ -547,7 +541,6 @@ static char amlmtd_help_text[] =
     "amlnf rom_write addr [off] size	- write bl2.\n"
     "\t[off] inside offset\n\twirte all copies if without off\n"
 #endif
-    "amlnf bl2_info	- show bl2 infos\n"
     "amlnf bl2_erase [cpy]	- erase bl2 area, erase all without cpy!\n"
     "amlnf bl2_read addr cpy size	- read bl2 by cpy.\n"
     "amlnf bl2_write addr [cpy] size	- write bl2.\n"

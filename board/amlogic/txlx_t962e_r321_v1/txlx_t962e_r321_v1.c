@@ -355,9 +355,7 @@ extern void aml_pwm_cal_init(int mode);
 int board_init(void)
 {
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if ((0x1b8ec003 != readl(P_PREG_STICKY_REG2)) && (0x1b8ec004 != readl(P_PREG_STICKY_REG2))) {
-		aml_try_factory_usb_burning(0, gd->bd);
-	}
+	aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 	aml_pwm_cal_init(0);
 #ifdef CONFIG_USB_XHCI_AMLOGIC_GXL
@@ -407,16 +405,11 @@ int board_late_init(void)
 	hdmi_tx_set_hdmi_5v();
 	hdmi_tx_init();
 #endif
-#ifdef CONFIG_AML_CVBS
-	run_command("cvbs init", 0);
-#endif
 #ifdef CONFIG_AML_LCD
 	lcd_probe();
 #endif
 
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if (0x1b8ec003 == readl(P_PREG_STICKY_REG2))
-		aml_try_factory_usb_burning(1, gd->bd);
 	/*aml_try_factory_sdcard_burning(0, gd->bd);*/
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 

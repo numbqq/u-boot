@@ -20,6 +20,4 @@ int saradc_enable(void);
 int saradc_disable(void);
 int get_adc_sample_gxbb(int chan);
 int get_adc_sample_gxbb_12bit(int chan);
-void saradc_sample_test(void);
-
 #endif /*__AML_SARADC_H__*/

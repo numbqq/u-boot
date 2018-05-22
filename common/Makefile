@@ -175,7 +175,6 @@ obj-$(CONFIG_CMD_REISER) += cmd_reiser.o
 obj-$(CONFIG_SANDBOX) += cmd_sandbox.o
 obj-$(CONFIG_CMD_SATA) += cmd_sata.o
 obj-$(CONFIG_CMD_SF) += cmd_sf.o
-obj-$(CONFIG_CMD_SHA2) += cmd_sha2.o
 obj-$(CONFIG_CMD_SCSI) += cmd_scsi.o
 obj-$(CONFIG_CMD_SHA1SUM) += cmd_sha1sum.o
 obj-$(CONFIG_CMD_SETEXPR) += cmd_setexpr.o
@@ -324,6 +323,4 @@ obj-$(CONFIG_AML_VOUT) += cmd_vout.o
 obj-$(CONFIG_AML_LCD) += cmd_lcd.o
 obj-$(CONFIG_CMD_RSVMEM) += cmd_rsvmem.o
 obj-$(CONFIG_CMD_CHIPID) += cmd_chipid.o
-obj-$(CONFIG_CMD_WATCHDOG) += cmd_watchdog.o
-
 CFLAGS_env_embedded.o := -Wa,--no-warn -DENV_CRC=$(shell tools/envcrc 2>/dev/null)

@@ -82,7 +82,7 @@ struct ext_lcd_config_s ext_lcd_config[LCD_NUM_MAX] = {
 static struct dsi_config_s lcd_mipi_config = {
 	.lane_num = 4,
 	.bit_rate_max = 550, /* MHz */
-	.factor_numerator   = 0,
+	.factor_numerator	= 0,
 	.factor_denominator = 100,
 	.operation_mode_init = 1,    /* 0=video mode, 1=command mode */
 	.operation_mode_display = 0, /* 0=video mode, 1=command mode */
@@ -189,8 +189,8 @@ static char lcd_ext_gpio[LCD_EXTERN_GPIO_NUM_MAX][LCD_EXTERN_GPIO_LEN_MAX] = {
 };
 
 #define LCD_EXTERN_NAME "ext_default"
-#define LCD_EXTERN_CMD_SIZE        LCD_EXTERN_CMD_SIZE_DYNAMIC
-static unsigned char init_on_table[LCD_EXTERN_INIT_ON_MAX] = {
+#define LCD_EXTERN_CMD_SIZE        LCD_EXTERN_DYNAMIC_LEN
+static unsigned char init_on_table[LCD_EXTERN_INIT_TABLE_MAX] = {
 	0x05, 1, 0x11,
 	0xff, 150,
 	0x05, 1, 0x29,
@@ -198,7 +198,7 @@ static unsigned char init_on_table[LCD_EXTERN_INIT_ON_MAX] = {
 	0xff, 0xff,   //ending flag
 };
 
-static unsigned char init_off_table[LCD_EXTERN_INIT_OFF_MAX] = {
+static unsigned char init_off_table[LCD_EXTERN_INIT_TABLE_MAX] = {
 	0x05, 1, 0x28,
 	0xff, 20,
 	0x05, 1, 0x10,
@@ -241,23 +241,9 @@ struct bl_config_s bl_config_dft = {
 	.pwm_on_delay = 10,
 	.pwm_off_delay = 10,
 
-	.bl_extern_index = 0xff,
-
 	.pinmux_set = {{2, 0x00200000}, {LCD_PINMUX_END, 0x0}},
-	.pinmux_clr = {{2, 0x00d00000}, {LCD_PINMUX_END, 0x0}},
+	.pinmux_clr = {{2, 0x00000000}, {LCD_PINMUX_END, 0x0}},
 };
-
-#ifdef CONFIG_AML_BL_EXTERN
-struct bl_extern_config_s bl_extern_config_dtf = {
-	.index = BL_EXTERN_INDEX_INVALID,
-	.name = "none",
-	.type = BL_EXTERN_MAX,
-	.i2c_addr = 0xff,
-	.i2c_bus = BL_EXTERN_I2C_BUS_MAX,
-	.dim_min = 10,
-	.dim_max = 255,
-};
-#endif
 
 void lcd_config_bsp_init(void)
 {

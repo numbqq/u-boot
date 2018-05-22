@@ -14,7 +14,6 @@ LD=$(CROSS_COMPILE_BL301)ld
 OBJCOPY=$(CROSS_COMPILE_BL301)objcopy
 OBJDUMP=$(CROSS_COMPILE_BL301)objdump
 
-
 ARM_ARCH=armv7-m
 ARM_CPU=cortex-m3
 CFLAGS_WARN=-Wall -Werror -Wundef -Wstrict-prototypes -Wno-trigraphs      \

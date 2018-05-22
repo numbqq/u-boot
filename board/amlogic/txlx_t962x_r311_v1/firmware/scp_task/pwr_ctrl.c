@@ -79,7 +79,6 @@ enum pwm_id {
 	pwm_ao_b,
 };
 
-#if 0
 static void power_switch_to_ee(unsigned int pwr_ctrl)
 {
 	if (pwr_ctrl == ON) {
@@ -96,7 +95,6 @@ static void power_switch_to_ee(unsigned int pwr_ctrl)
 
 	}
 }
-#endif
 
 static void pwm_set_voltage(unsigned int id, unsigned int voltage)
 {
@@ -192,34 +190,21 @@ static void power_on_ddr(void)
 	aml_update_bits(AO_GPIO_O_EN_N, 1 << 27, 1 << 27);
 	_udelay(10000);
 }
-
-/*timing request:
- *poweroff vddio3.3v-->delay 20ms-->poweroff vddee
- */
-static void power_off_vddee(void)
+static void power_off_ee(void)
 {
-	unsigned int val;
-
-	/*set test n output low level */
-	_udelay(10000);/*the other 10ms in power_off_at_32k()*/
-	val = readl(AO_GPIO_O_EN_N);
-	val &= ~(0x1 << 31);
-	writel(val, AO_GPIO_O_EN_N);
-
+	return;
+	power_switch_to_ee(OFF);
+	aml_update_bits(AO_GPIO_O_EN_N, 1 << 8, 0);
+	aml_update_bits(AO_GPIO_O_EN_N, 1 << 24, 0);
 }
 
-/*timing request:
- *poweron vddee-->delay 20ms-->poweron vddio3.3v
- */
-static void power_on_vddee(void)
+static void power_on_ee(void)
 {
-	unsigned int val;
-
-	/*set test n output high level */
-	val = readl(AO_GPIO_O_EN_N);
-	val |= 0x1 << 31;
-	writel(val, AO_GPIO_O_EN_N);
-	_udelay(10000);/*the other 10ms in power_on_at_32k()*/
+	return;
+	aml_update_bits(AO_GPIO_O_EN_N, 1 << 8, 0);
+	aml_update_bits(AO_GPIO_O_EN_N, 1 << 24, 1 << 24);
+	_udelay(10000);
+	_udelay(10000);
 }
 
 static void power_off_at_32k(unsigned int suspend_from)
@@ -230,15 +215,13 @@ static void power_off_at_32k(unsigned int suspend_from)
 	_udelay(5000);
 	pwm_set_voltage(pwm_ao_b, CONFIG_VDDEE_SLEEP_VOLTAGE);	/* reduce power */
 	if (suspend_from == SYS_POWEROFF) {
-		power_off_vddee();
+		power_off_ee();
 		power_off_ddr();
 	}
 }
 
 static void power_on_at_32k(unsigned int suspend_from)
 {
-	if (suspend_from == SYS_POWEROFF)
-		power_on_vddee();
 	pwm_set_voltage(pwm_ao_b, CONFIG_VDDEE_INIT_VOLTAGE);
 	_udelay(10000);
 	power_on_3v3_5v();
@@ -248,8 +231,11 @@ static void power_on_at_32k(unsigned int suspend_from)
 	_udelay(10000);
 	power_on_usb5v();
 
-	if (suspend_from == SYS_POWEROFF)
+	if (suspend_from == SYS_POWEROFF) {
 		power_on_ddr();
+		power_on_ee();
+
+	}
 }
 
 void get_wakeup_source(void *response, unsigned int suspend_from)
@@ -304,7 +290,6 @@ static unsigned int detect_key(unsigned int suspend_from)
 	int exit_reason = 0;
 	unsigned int time_out = readl(AO_DEBUG_REG2);
 	unsigned time_out_ms = time_out*100;
-	unsigned char adc_key_cnt = 0;
 	unsigned *irq = (unsigned *)WAKEUP_SRC_IRQ_ADDR_BASE;
 	/* unsigned *wakeup_en = (unsigned *)SECURE_TASK_RESPONSE_WAKEUP_EN; */
 
@@ -313,7 +298,6 @@ static unsigned int detect_key(unsigned int suspend_from)
 	if (time_out_ms != 0)
 		wakeup_timer_setup();
 	init_remote();
-	saradc_enable();
 #ifdef CONFIG_CEC_WAKEUP
 	if (hdmi_cec_func_config & 0x1) {
 		remote_cec_hw_reset();
@@ -351,17 +335,6 @@ static unsigned int detect_key(unsigned int suspend_from)
 			}
 		}
 
-		if (irq[IRQ_AO_TIMERA] == IRQ_AO_TIMERA_NUM) {
-			irq[IRQ_AO_TIMERA] = 0xFFFFFFFF;
-			if (check_adc_key_resume()) {
-				adc_key_cnt++;
-				/*using variable 'adc_key_cnt' to eliminate the dithering of the key*/
-				if (2 == adc_key_cnt)
-					exit_reason = POWER_KEY_WAKEUP;
-			} else {
-				adc_key_cnt = 0;
-			}
-		}
 #ifdef CONFIG_BT_WAKEUP
 		if (irq[IRQ_AO_GPIO0] == IRQ_AO_GPIO0_NUM) {
 			irq[IRQ_AO_GPIO0] = 0xFFFFFFFF;
@@ -374,11 +347,11 @@ static unsigned int detect_key(unsigned int suspend_from)
 		}
 #endif
 
-		if (irq[IRQ_AO_IR_DEC] == IRQ_AO_IR_DEC_NUM) {
-			irq[IRQ_AO_IR_DEC] = 0xFFFFFFFF;
-				if (remote_detect_key())
-					exit_reason = REMOTE_WAKEUP;
-		}
+	if (irq[IRQ_AO_IR_DEC] == IRQ_AO_IR_DEC_NUM) {
+		irq[IRQ_AO_IR_DEC] = 0xFFFFFFFF;
+			if (remote_detect_key())
+				exit_reason = REMOTE_WAKEUP;
+	}
 		if (irq[IRQ_ETH_PHY] == IRQ_ETH_PHY_NUM) {
 			irq[IRQ_ETH_PHY] = 0xFFFFFFFF;
 				exit_reason = ETH_PHY_WAKEUP;
@@ -388,8 +361,6 @@ static unsigned int detect_key(unsigned int suspend_from)
 		else
 			asm volatile("wfi");
 	} while (1);
-
-	saradc_disable();
 
 	return exit_reason;
 }

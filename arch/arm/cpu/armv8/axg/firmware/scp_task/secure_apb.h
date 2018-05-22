@@ -7,7 +7,7 @@
 
 #ifndef SECURE_APB_H
 #define SECURE_APB_H
-#include "regs.h"
+#include "reg.h"
 
 //
 // Reading file:  ./secure_apb4_ee.h

@@ -60,19 +60,19 @@ static unsigned char init_off_table[] = {
 
 static void lcd_extern_set_csb(unsigned v)
 {
-	aml_lcd_extern_set_gpio(ext_config->spi_gpio_cs, v);
+	aml_lcd_gpio_set(ext_config->spi_gpio_cs, v);
 	udelay(SPI_DELAY);
 }
 
 static void lcd_extern_set_scl(unsigned v)
 {
-	aml_lcd_extern_set_gpio(ext_config->spi_gpio_clk, v);
+	aml_lcd_gpio_set(ext_config->spi_gpio_clk, v);
 	udelay(SPI_DELAY);
 }
 
 static void lcd_extern_set_sda(unsigned v)
 {
-	aml_lcd_extern_set_gpio(ext_config->spi_gpio_data, v);
+	aml_lcd_gpio_set(ext_config->spi_gpio_data, v);
 	udelay(SPI_DELAY);
 }
 
@@ -131,54 +131,40 @@ static int lcd_extern_spi_write(unsigned char *buf, int len)
 	return 0;
 }
 
-static int lcd_extern_power_cmd(unsigned char *init_table, int flag)
+static int lcd_extern_power_cmd(unsigned char *init_table)
 {
-	int i = 0, max_len, step = 0;
-	unsigned char type, cmd_size;
+	int i = 0, len, gpio;
 	int ret = 0;
 
-	cmd_size = ext_config->cmd_size;
-	if (cmd_size < 1) {
-		EXTERR("%s: cmd_size %d is invalid\n", __func__, cmd_size);
+	len = ext_config->cmd_size;
+	if (len < 1) {
+		EXTERR("%s: cmd_size %d is invalid\n", __func__, len);
 		return -1;
 	}
-	if (cmd_size == LCD_EXTERN_CMD_SIZE_DYNAMIC) {
+	if (len == LCD_EXTERN_DYNAMIC_LEN) {
 		EXTPR("%s: cmd_size dynamic length to do\n", __func__);
 		return -1;
 	}
-	if (init_table == NULL) {
-		EXTERR("%s: init_table %d is NULL\n", __func__, flag);
-		return -1;
-	}
 
-	if (flag)
-		max_len = LCD_EXTERN_INIT_ON_MAX;
-	else
-		max_len = LCD_EXTERN_INIT_OFF_MAX;
-
-	while (i <= max_len) {
-		type = init_table[i];
-		if (type == LCD_EXTERN_INIT_END)
+	while (i <= LCD_EXTERN_INIT_TABLE_MAX) {
+		if (init_table[i] == LCD_EXTERN_INIT_END) {
 			break;
-		if (lcd_debug_print_flag) {
-			EXTPR("%s: step %d: type=0x%02x, cmd_size=%d\n",
-				__func__, step, type, cmd_size);
-		}
-		if (type == LCD_EXTERN_INIT_NONE) {
+		} else if (init_table[i] == LCD_EXTERN_INIT_NONE) {
 			//do nothing, only for delay
-		} else if (type == LCD_EXTERN_INIT_GPIO) {
-			aml_lcd_extern_set_gpio(init_table[i+1], init_table[i+2]);
-		} else if (type == LCD_EXTERN_INIT_CMD) {
-			ret = lcd_extern_spi_write(&init_table[i+1], (cmd_size-2));
+		} else if (init_table[i] == LCD_EXTERN_INIT_GPIO) {
+			gpio = aml_lcd_extern_get_gpio(init_table[i+1]);
+			if (gpio < LCD_GPIO_MAX)
+				aml_lcd_gpio_set(gpio, init_table[i+2]);
+		} else if (init_table[i] == LCD_EXTERN_INIT_CMD) {
+			ret = lcd_extern_spi_write(&init_table[i+1], (len-2));
 		} else {
 			EXTERR("%s(%d: %s): pwoer_type %d is invalid\n",
 				__func__, ext_config->index,
 				ext_config->name, ext_config->type);
 		}
-		if (init_table[i+cmd_size-1] > 0)
-			mdelay(init_table[i+cmd_size-1]);
-		step++;
-		i += cmd_size;
+		if (init_table[i+len-1] > 0)
+			mdelay(init_table[i+len-1]);
+		i += len;
 	}
 
 	return ret;
@@ -190,9 +176,9 @@ static int lcd_extern_power_ctrl(int flag)
 
 	spi_gpio_init();
 	if (flag)
-		ret = lcd_extern_power_cmd(ext_config->table_init_on, 1);
+		ret = lcd_extern_power_cmd(ext_config->table_init_on);
 	else
-		ret = lcd_extern_power_cmd(ext_config->table_init_off, 0);
+		ret = lcd_extern_power_cmd(ext_config->table_init_off);
 	mdelay(10);
 	spi_gpio_off();
 

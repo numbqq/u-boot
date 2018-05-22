@@ -1,6 +1,6 @@
 
 /*
- * board/amlogic/gxb_p201_v1/firmware/board_init.c
+ * board/khadas/kvim2/firmware/board_init.c
  *
  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
  *

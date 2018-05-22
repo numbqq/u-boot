@@ -24,6 +24,7 @@
 
 #include <asm/arch/cpu.h>
 
+
 #define CONFIG_SYS_GENERIC_BOARD  1
 #ifndef CONFIG_AML_MESON
 #warning "include warning"
@@ -35,19 +36,17 @@
 #define CONFIG_PLATFORM_POWER_INIT
 #define CONFIG_VCCK_INIT_VOLTAGE	1100
 #define CONFIG_VDDEE_INIT_VOLTAGE	950		// voltage for power up
-#define CONFIG_VDDEE_SLEEP_VOLTAGE	 810		// voltage for suspend
+#define CONFIG_VDDEE_SLEEP_VOLTAGE	 850		// voltage for suspend
+
+/* configs for CEC */
+#define CONFIG_CEC_OSD_NAME		"AML_TV"
+#define CONFIG_CEC_WAKEUP
 
 /* SMP Definitinos */
 #define CPU_RELEASE_ADDR		secondary_boot_func
 
 /* config saradc*/
 #define CONFIG_CMD_SARADC 1
-
-/* command watchdog */
-#define CONFIG_CMD_WATCHDOG 1
-
-/*config irblaster*/
-#define CONFIG_CMD_IRBLASTER 1
 
 /* Serial config */
 #define CONFIG_CONS_INDEX 2
@@ -56,7 +55,7 @@
 #define CONFIG_SERIAL_MULTI		1
 
 //Enable ir remote wake up for bl30
-#define CONFIG_IR_REMOTE_POWER_UP_KEY_CNT 5
+#define CONFIG_IR_REMOTE_POWER_UP_KEY_CNT 3
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL1 0xef10fe01 //amlogic tv ir --- power
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL2 0XBB44FB04 //amlogic tv ir --- ch+
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL3 0xF20DFE01 //amlogic tv ir --- ch-
@@ -87,8 +86,8 @@
         "display_color_bg=0\0" \
         "dtb_mem_addr=0x1000000\0" \
         "fb_addr=0x3d800000\0" \
-        "fb_width=768\0" \
-        "fb_height=1024\0" \
+        "fb_width=1920\0" \
+        "fb_height=1080\0" \
         "usb_burning=update 1000\0" \
         "fdt_high=0x20000000\0"\
         "try_auto_burn=update 700 750;\0"\
@@ -103,7 +102,7 @@
         "osd_reverse=0\0"\
         "video_reverse=0\0"\
         "initargs="\
-            "rootfstype=ramfs init=/init console=ttyS0,115200 no_console_suspend earlycon=aml_uart,0xff803000 ramoops.pstore_en=1 ramoops.record_size=0x8000 ramoops.console_size=0x4000 "\
+            "rootfstype=ramfs init=/init console=ttyS0,115200 no_console_suspend earlyprintk=aml-uart,0xff803000 ramoops.pstore_en=1 ramoops.record_size=0x8000 ramoops.console_size=0x4000 "\
             "\0"\
         "upgrade_check="\
             "echo upgrade_step=${upgrade_step}; "\
@@ -193,9 +192,6 @@
                 "if keyman read usid ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
                     "setenv serial ${usid};"\
-                "else "\
-                    "setenv bootargs ${bootargs} androidboot.serialno=1234567890;"\
-                    "setenv serial 1234567890;"\
                 "fi;"\
                 "if keyman read mac ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} mac=${mac} androidboot.mac=${mac};"\
@@ -242,14 +238,8 @@
 
 /* ddr */
 #define CONFIG_DDR_SIZE					0 //MB //0 means ddr size auto-detect
-
-/* IMPORTANT
- *    DDR clk <= 400MHz, please enable CONFIG_DDR_PLL_BYPASS blow
- *    DDR clk > 400MHz, please disable CONFIG_DDR_PLL_BYPASS blow
- */
-#define CONFIG_DDR_CLK					912  //MHz, Range: 200-1200, should be multiple of 24
-#define CONFIG_DDR4_CLK					912  //MHz, this is for same board with DDR4 chip
-
+#define CONFIG_DDR_CLK					792  //MHz, Range: 384-1200, should be multiple of 24
+#define CONFIG_DDR4_CLK					1008  //MHz, for boards which use different ddr chip
 #define CONFIG_NR_DRAM_BANKS			1
 /* DDR type setting
  *    CONFIG_DDR_TYPE_LPDDR3   : LPDDR3
@@ -266,12 +256,11 @@
 #define CONFIG_DDR_FULL_TEST			0 //0:disable, 1:enable. ddr full test
 #define CONFIG_CMD_DDR_D2PLL			0 //0:disable, 1:enable. d2pll cmd
 #define CONFIG_CMD_DDR_TEST				0 //0:disable, 1:enable. ddrtest cmd
-#define CONFIG_DDR_LOW_POWER			1 //0:disable, 1:enable. ddr clk gate for lp
+#define CONFIG_DDR_LOW_POWER			0 //0:disable, 1:enable. ddr clk gate for lp
 #define CONFIG_DDR_ZQ_PD				0 //0:disable, 1:enable. ddr zq power down
 #define CONFIG_DDR_USE_EXT_VREF			0 //0:disable, 1:enable. ddr use external vref
 #define CONFIG_DDR4_TIMING_TEST			0 //0:disable, 1:enable. ddr4 timing test function
 #define CONFIG_DDR_PLL_BYPASS			0 //0:disable, 1:enable. ddr pll bypass function
-#define CONFIG_DDR_FUNC_PRINT_WINDOW	0 //0:disable, 1:enable. print ddr training window
 
 /* storage: emmc/nand/sd */
 #define	CONFIG_STORE_COMPATIBLE 1
@@ -310,7 +299,7 @@
 #define CONFIG_TPL_COPY_NUM               4
 #define CONFIG_TPL_PART_NAME              "tpl"
 /* for bl2, restricted by romboot */
-#define CONFIG_BL2_COPY_NUM               8
+#define CONFIG_BL2_COPY_NUM               4
 #endif /* CONFIG_DISCRETE_BOOTLOADER */
 
 #define CONFIG_CMD_NAND 1
@@ -401,9 +390,9 @@
 //#define CONFIG_AML_HDMITX20 1
 //#define CONFIG_AML_CANVAS 1
 #define CONFIG_AML_VOUT 1
-#define CONFIG_AML_OSD 1
-#define CONFIG_OSD_SCALE_ENABLE 0
-#define CONFIG_CMD_BMP 1
+//#define CONFIG_AML_OSD 1
+//#define CONFIG_OSD_SCALE_ENABLE 0
+//#define CONFIG_CMD_BMP 1
 
 #if defined(CONFIG_AML_VOUT)
 //#define CONFIG_AML_CVBS 1
@@ -412,20 +401,6 @@
 #define CONFIG_AML_LCD    1
 /*#define CONFIG_AML_LCD_TV 1*/
 #define CONFIG_AML_LCD_TABLET 1
-#define CONFIG_AML_BL_EXTERN  1
-#define CONFIG_AML_BL_EXTERN_MIPI_IT070ME05 1
-
-#define CONFIG_AML_PCIE
-#define CONFIG_AML_PCIEA_GPIO_RESET  PIN_GPIOX_19
-#define CONFIG_AML_PCIEB_GPIO_RESET  PIN_GPIOZ_10
-#define CONFIG_AML_PCIEA_GPIO_RESET_NAME	"GPIOX_19"
-#define CONFIG_AML_PCIEB_GPIO_RESET_NAME	"GPIOZ_10"
-
-#define CONFIG_PCI 1
-#define CONFIG_CMD_PCI 1
-#define CONFIG_CMD_PCI_ENUM 1
-#define CONFIG_PCIE_AMLOGIC 1
-#define CONFIG_PCI_SCAN_SHOW 1
 
 /* USB
  * Enable CONFIG_MUSB_HCD for Host functionalities MSC, keyboard
@@ -451,7 +426,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"axg_s400"
 
 //UBOOT Facotry usb/sdcard burning config
@@ -484,7 +458,6 @@
 #define CONFIG_EFUSE 1
 #define CONFIG_SYS_I2C_AML 1
 #define CONFIG_SYS_I2C_SPEED     400000
-#define CONFIG_I2C_MULTI_BUS 1
 
 /* commands */
 #define CONFIG_CMD_CACHE 1
@@ -523,8 +496,7 @@
 #define CONFIG_CMD_MISC     1
 #define CONFIG_CMD_ITEST    1
 #define CONFIG_CMD_CPU_TEMP 1
-#define CONFIG_SYS_MEM_TOP_HIDE 0
-#define CONFIG_MULTI_DTB	1
+#define CONFIG_SYS_MEM_TOP_HIDE 0x08000000 //hide 128MB for kernel reserve
 
 /* debug mode defines */
 //#define CONFIG_DEBUG_MODE			1

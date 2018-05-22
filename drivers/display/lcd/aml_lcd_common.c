@@ -463,12 +463,6 @@ int lcd_pinmux_load_from_dts(char *dt_addr, struct lcd_config_s *pconf)
 			}
 		}
 		break;
-	case LCD_MIPI:
-		pconf->pinmux_set[0][0] = LCD_PINMUX_END;
-		pconf->pinmux_set[0][1] = 0x0;
-		pconf->pinmux_clr[0][0] = LCD_PINMUX_END;
-		pconf->pinmux_clr[0][1] = 0x0;
-		break;
 	default:
 		LCDERR("invalid lcd type\n");
 		break;
@@ -626,7 +620,7 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 	char str[100];
 	int len = 0;
 
-	pconf->lcd_timing.clk_change = 0; /* clear clk flag */
+	pconf->lcd_timing.clk_change = 0; /* clear clk flga */
 	switch (type) {
 	case 0: /* pixel clk adjust */
 		pclk = (h_period * v_period) / duration_den * duration_num;
@@ -634,9 +628,9 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 			pconf->lcd_timing.clk_change = LCD_CLK_PLL_CHANGE;
 		break;
 	case 1: /* htotal adjust */
-		h_period = ((pclk / v_period) * duration_den * 100) /
+		h_period = ((pclk / v_period) * duration_den * 10) /
 				duration_num;
-		h_period = (h_period + 99) / 100; /* round off */
+		h_period = (h_period + 5) / 10; /* round off */
 		if (pconf->lcd_basic.h_period != h_period) {
 			/* check clk frac update */
 			pclk = (h_period * v_period) / duration_den *
@@ -648,9 +642,9 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 		}
 		break;
 	case 2: /* vtotal adjust */
-		v_period = ((pclk / h_period) * duration_den * 100) /
+		v_period = ((pclk / h_period) * duration_den * 10) /
 				duration_num;
-		v_period = (v_period + 99) / 100; /* round off */
+		v_period = (v_period + 5) / 10; /* round off */
 		if (pconf->lcd_basic.v_period != v_period) {
 			/* check clk frac update */
 			pclk = (h_period * v_period) / duration_den *
@@ -663,14 +657,14 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 		break;
 	case 3: /* free adjust, use min/max range to calculate */
 	default:
-		v_period = ((pclk / h_period) * duration_den * 100) /
+		v_period = ((pclk / h_period) * duration_den * 10) /
 			duration_num;
-		v_period = (v_period + 99) / 100; /* round off */
+		v_period = (v_period + 5) / 10; /* round off */
 		if (v_period > pconf->lcd_basic.v_period_max) {
 			v_period = pconf->lcd_basic.v_period_max;
-			h_period = ((pclk / v_period) * duration_den * 100) /
+			h_period = ((pclk / v_period) * duration_den * 10) /
 				duration_num;
-			h_period = (h_period + 99) / 100; /* round off */
+			h_period = (h_period + 5) / 10; /* round off */
 			if (h_period > pconf->lcd_basic.h_period_max) {
 				h_period = pconf->lcd_basic.h_period_max;
 				pclk = (h_period * v_period) / duration_den *
@@ -687,9 +681,9 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 			}
 		} else if (v_period < pconf->lcd_basic.v_period_min) {
 			v_period = pconf->lcd_basic.v_period_min;
-			h_period = ((pclk / v_period) * duration_den * 100) /
+			h_period = ((pclk / v_period) * duration_den * 10) /
 				duration_num;
-			h_period = (h_period + 99) / 100; /* round off */
+			h_period = (h_period + 5) / 10; /* round off */
 			if (h_period < pconf->lcd_basic.h_period_min) {
 				h_period = pconf->lcd_basic.h_period_min;
 				pclk = (h_period * v_period) / duration_den *

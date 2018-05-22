@@ -510,16 +510,6 @@ struct dsi_phy_s {
 };
 
 struct dsi_vid_s {
-	int data_bits;
-	/* vid packet */
-	int vid_num_chunks;
-	int pixel_per_chunk; /* pkt_size */
-	int vid_null_size;
-
-	int byte_per_chunk; /* internal usage */
-	int multi_pkt_en;   /* internal usage */
-
-	/* vid timing */
 	unsigned int hline;
 	unsigned int hsa;
 	unsigned int hbp;
@@ -527,6 +517,11 @@ struct dsi_vid_s {
 	unsigned int vbp;
 	unsigned int vfp;
 	unsigned int vact;
+
+	/* for non-burst chunk overhead */
+	unsigned int pixel_per_chunk;
+	unsigned int num_of_chunk;
+	unsigned int vid_null_size;
 };
 
 #define DSI_CMD_SIZE_MAX		2000
@@ -536,6 +531,5 @@ extern void mipi_dsi_print_info(struct lcd_config_s *pconf);
 extern void lcd_mipi_dsi_config_set(struct lcd_config_s *pConf);
 extern void mipi_dsi_link_off(struct lcd_config_s *pConf);
 extern void lcd_mipi_control_set(struct lcd_config_s *pConf, int status);
-extern int lcd_mipi_dsi_init_table_detect(char *dt_addr, int child_offset, struct dsi_config_s *dconf, int flag);
 
 #endif

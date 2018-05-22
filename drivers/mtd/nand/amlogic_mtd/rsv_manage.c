@@ -123,7 +123,7 @@ int aml_nand_scan_shipped_bbt(struct mtd_info *mtd)
 
 	/*need scan factory bad block in bootloader area*/
 	start_blk = 0;
-	total_blk = (int)(mtd->size >> phys_erase_shift);
+	total_blk = (int)(mtd->size >> phys_erase_shift) + 1024 / pages_per_blk;
 	/* fixme, need  check the total block number avoid mtd->size was changed outside! */
 	printk("scaning flash total block %d\n", total_blk);
 	do {
@@ -571,6 +571,7 @@ int aml_nand_erase_rsv_info(struct mtd_info *mtd,
 	printk("erasing %s: \n", nandrsv_info->name);
 
 	if (nandrsv_info->valid) {
+		nandrsv_info->valid_node->status = 0;
 		addr = nandrsv_info->valid_node->phy_blk_addr;
 		addr *= mtd->erasesize;
 		memset(&erase_info,
@@ -582,6 +583,7 @@ int aml_nand_erase_rsv_info(struct mtd_info *mtd,
 		error = mtd->_erase(mtd, &erase_info);
 		_aml_rsv_protect();
 		printk("erasing valid info block: %llx \n", addr);
+		nandrsv_info->valid_node->status = 1;
 		nandrsv_info->valid_node->ec++;
 		nandrsv_info->valid_node->phy_page_addr = 0;
 		nandrsv_info->valid_node->timestamp = 1;
@@ -631,18 +633,14 @@ int aml_nand_save_rsv_info(struct mtd_info *mtd,
 	int error = 0, pages_per_blk, i = 1;
 	loff_t addr = 0;
 	struct erase_info erase_info;
+	struct aml_nand_chip *aml_chip = mtd_to_nand_chip(mtd);
 
 	pages_per_blk = mtd->erasesize / mtd->writesize;
-
-	/*solve these abnormals caused by power off and ecc error*/
-	if ((nandrsv_info->valid_node->status & POWER_ABNORMAL_FLAG)
-		|| (nandrsv_info->valid_node->status & ECC_ABNORMAL_FLAG))
-		nandrsv_info->valid_node->phy_page_addr = pages_per_blk;
-
-	if ((mtd->writesize < nandrsv_info->size))
+	if ((mtd->writesize < nandrsv_info->size)
+		&& (aml_chip->aml_nandenv_info->valid == 1))
 		i = (nandrsv_info->size + mtd->writesize - 1) / mtd->writesize;
-	printk("%s:%d, %s: valid=%d, pages=%d\n",__func__, __LINE__,
-		nandrsv_info->name, nandrsv_info->valid, i);
+	printk("%s:%d,valid=%d, pages=%d\n",__func__, __LINE__,
+		aml_chip->aml_nandenv_info->valid, i);
 RE_SEARCH:
 	if (nandrsv_info->valid) {
 		//printk("%s:%d,phy_page_addr=%d,pages=%d\n",__func__, __LINE__,
@@ -650,6 +648,7 @@ RE_SEARCH:
 		nandrsv_info->valid_node->phy_page_addr += i;
 		if ((nandrsv_info->valid_node->phy_page_addr+i)>pages_per_blk) {
 	if ((nandrsv_info->valid_node->phy_page_addr -i) == pages_per_blk) {
+				nandrsv_info->valid_node->status = 0;
 				addr = nandrsv_info->valid_node->phy_blk_addr;
 				addr *= mtd->erasesize;
 				memset(&erase_info,
@@ -660,8 +659,9 @@ RE_SEARCH:
 				_aml_rsv_disprotect();
 				error = mtd->_erase(mtd, &erase_info);
 				_aml_rsv_protect();
+				nandrsv_info->valid_node->status = 1;
 				nandrsv_info->valid_node->ec++;
-				printk("---erase bad info block:%llx \n",addr);
+				printk("---erase bad env block:%llx \n",addr);
 			}
 			//free_node = kzalloc(sizeof(struct free_node_t),
 			//	GFP_KERNEL);
@@ -723,6 +723,7 @@ RE_SEARCH:
 		erase_info.mtd = mtd;
 		erase_info.addr = addr;
 		erase_info.len = mtd->erasesize;
+		nandrsv_info->valid_node->status = 0;
 		_aml_rsv_disprotect();
 		error = mtd->_erase(mtd, &erase_info);
 		_aml_rsv_protect();
@@ -732,6 +733,7 @@ RE_SEARCH:
 			return error;
 		}
 		nandrsv_info->valid_node->ec++;
+		nandrsv_info->valid_node->status = 1;
 	}
 
 
@@ -740,10 +742,7 @@ RE_SEARCH:
 		return 1;
 	}
 	/* update valid infos */
-	if (!nandrsv_info->valid)
-		nandrsv_info->valid = 1;
-	/* clear status when write successfully*/
-	nandrsv_info->valid_node->status = 0;
+	nandrsv_info->valid = 1;
 	return error;
 }
 
@@ -855,6 +854,7 @@ int aml_nand_rsv_info_init(struct mtd_info *mtd)
 		return -ENOMEM;
 
 	aml_chip->aml_nandbbt_info->valid_node->phy_blk_addr = -1;
+	aml_chip->aml_nandbbt_info->valid_node->status = 1;
 	aml_chip->aml_nandbbt_info->start_block = bbt_start_block;
 	aml_chip->aml_nandbbt_info->end_block =
 		aml_chip->aml_nandbbt_info->start_block + 4;
@@ -883,6 +883,7 @@ int aml_nand_rsv_info_init(struct mtd_info *mtd)
 		return -ENOMEM;
 
 	aml_chip->aml_nandenv_info->valid_node->phy_blk_addr = -1;
+	aml_chip->aml_nandenv_info->valid_node->status = 1;
 	aml_chip->aml_nandenv_info->start_block =
 		aml_chip->aml_nandbbt_info->end_block;
 	aml_chip->aml_nandenv_info->end_block =
@@ -903,6 +904,7 @@ int aml_nand_rsv_info_init(struct mtd_info *mtd)
 		return -ENOMEM;
 
 	aml_chip->aml_nandkey_info->valid_node->phy_blk_addr = -1;
+	aml_chip->aml_nandkey_info->valid_node->status = 1;
 	aml_chip->aml_nandkey_info->start_block =
 		aml_chip->aml_nandenv_info->end_block;
 	aml_chip->aml_nandkey_info->end_block =
@@ -923,6 +925,7 @@ int aml_nand_rsv_info_init(struct mtd_info *mtd)
 		return -ENOMEM;
 
 	aml_chip->aml_nanddtb_info->valid_node->phy_blk_addr = -1;
+	aml_chip->aml_nanddtb_info->valid_node->status = 1;
 	aml_chip->aml_nanddtb_info->start_block =
 		aml_chip->aml_nandkey_info->end_block;
 	aml_chip->aml_nanddtb_info->end_block =
@@ -993,7 +996,6 @@ RE_RSV_INFO:
 	}
 
 	nandrsv_info->init = 1;
-	nandrsv_info->valid_node->status = 0;
 	if (!memcmp(oobinfo->name, nandrsv_info->name, 4)) {
 		nandrsv_info->valid = 1;
 		if (nandrsv_info->valid_node->phy_blk_addr >= 0) {
@@ -1101,7 +1103,6 @@ RE_RSV_INFO:
 		if ((error != 0) && (error != -EUCLEAN)) {
 			printk("blk good but read failed:%llx,%d\n",
 				(uint64_t)offset, error);
-			nandrsv_info->valid_node->status |= ECC_ABNORMAL_FLAG;
 			ret = -1;
 			continue;
 		}
@@ -1120,7 +1121,6 @@ RE_RSV_INFO:
 		i = nandrsv_info->valid_node->phy_page_addr;
 		if (((i + 1) % page_num) != 0) {
 			ret = -1;
-			nandrsv_info->valid_node->status |= POWER_ABNORMAL_FLAG;
 			printk("find %s incomplete\n", nandrsv_info->name);
 		}
 		if (ret == -1) {

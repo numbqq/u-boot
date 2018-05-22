@@ -209,9 +209,6 @@
                 "if keyman read usid ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
                     "setenv serial ${usid};"\
-                "else "\
-                    "setenv bootargs ${bootargs} androidboot.serialno=1234567890;"\
-                    "setenv serial 1234567890;"\
                 "fi;"\
                 "if keyman read mac ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} mac=${mac} androidboot.mac=${mac};"\
@@ -273,13 +270,19 @@
 #define CONFIG_DDR_CHANNEL_SET			CONFIG_DDR_CHL_AUTO
 /* ddr functions */
 #define CONFIG_DDR_FULL_TEST			0 //0:disable, 1:enable. ddr full test
-#define CONFIG_CMD_DDR_D2PLL			0 //0:disable, 1:enable. d2pll cmd
+#define CONFIG_CMD_DDR_D2PLL			1 //0:disable, 1:enable. d2pll cmd
 #define CONFIG_CMD_DDR_TEST				0 //0:disable, 1:enable. ddrtest cmd
 #define CONFIG_DDR_LOW_POWER			0 //0:disable, 1:enable. ddr clk gate for lp
 #define CONFIG_DDR_ZQ_PD				0 //0:disable, 1:enable. ddr zq power down
 #define CONFIG_DDR_USE_EXT_VREF			0 //0:disable, 1:enable. ddr use external vref
 #define CONFIG_DDR4_TIMING_TEST			0 //0:disable, 1:enable. ddr4 timing test function
 #define CONFIG_DDR_PLL_BYPASS			0 //0:disable, 1:enable. ddr pll bypass function
+
+/* lpddr3 config */
+#define CONFIG_LPDDR_REMAP_SET			LPDDR_DIE_ROW_COL_R14_C10
+#define CONFIG_DDR_FUNC_LPDDR3_CA		1
+#define CONFIG_LPDDR3_CA_TRAINING_CA0	CONFIG_LPDDR3_CA_TRAINING_USE_LANE0
+#define CONFIG_LPDDR3_CA_TRAINING_CA1	CONFIG_LPDDR3_CA_TRAINING_USE_LANE2
 
 /* storage: emmc/nand/sd */
 #define	CONFIG_STORE_COMPATIBLE 1
@@ -342,7 +345,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"q201"
 
 //UBOOT Facotry usb/sdcard burning config

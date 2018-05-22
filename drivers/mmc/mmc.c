@@ -23,7 +23,12 @@
 #include <partition_table.h>
 #endif
 #include <amlogic/secure_storage.h>
+#ifdef CONFIG_KVIM2
 #include <asm/arch/secure_apb.h>
+#endif
+#ifdef CONFIG_KVIM2L
+#include <asm/arch/secure_apb.h>
+#endif
 
 static struct list_head mmc_devices;
 static int cur_dev_num = -1;
@@ -31,17 +36,11 @@ static int cur_dev_num = -1;
 bool emmckey_is_access_range_legal (struct mmc *mmc, ulong start, lbaint_t blkcnt) {
 #ifdef CONFIG_STORE_COMPATIBLE
 	ulong key_start_blk, key_end_blk;
-	u64 key_glb_offset;
-	struct partitions * part = NULL;
-	struct virtual_partition *vpart = NULL;
 #endif
 	if (aml_is_emmc_tsd(mmc)) {
 #ifdef CONFIG_STORE_COMPATIBLE
-		vpart = aml_get_virtual_partition_by_name(MMC_KEY_NAME);
-		part = aml_get_partition_by_name(MMC_RESERVED_NAME);
-		key_glb_offset = part->offset + vpart->offset;
-		key_start_blk = (key_glb_offset / MMC_BLOCK_SIZE);
-		key_end_blk = ((key_glb_offset + vpart->size) / MMC_BLOCK_SIZE - 1);
+		key_start_blk = ((EMMCKEY_RESERVE_OFFSET + MMC_RESERVED_OFFSET) / MMC_BLOCK_SIZE);
+		key_end_blk = ((EMMCKEY_RESERVE_OFFSET + MMC_RESERVED_OFFSET + 256 * 1024) / MMC_BLOCK_SIZE - 1);
 		if (!(info_disprotect & DISPROTECT_KEY)) {
 			if ((key_start_blk <= (start + blkcnt -1))
 				&& (key_end_blk >= start)
@@ -1509,10 +1508,6 @@ int mmc_pattern_check(struct mmc *mmc)
 	part = aml_get_partition_by_name(MMC_RESERVED_NAME);
 
 	addr = (void *)malloc(vpart->size);
-	if (!addr) {
-		printf("pattern malloc failed\n");
-		return 1;
-	}
 	vpart = aml_get_virtual_partition_by_name(MMC_PATTERN_NAME);
 	part = aml_get_partition_by_name(MMC_RESERVED_NAME);
 	blk = (part->offset + vpart->offset) / mmc->read_bl_len;
@@ -1560,6 +1555,7 @@ static int mmc_complete_init(struct mmc *mmc)
 	return err;
 }
 
+#ifdef CONFIG_KVIM2
 void mmc_bus_init(void)
 {
 	*P_PAD_PULL_UP_EN_REG2 = 0xffffffff;
@@ -1567,6 +1563,17 @@ void mmc_bus_init(void)
 	*P_PERIPHS_PIN_MUX_7 = 0xf0000000;
 	(*((volatile unsigned *)((volatile uint32_t *)0xc1108c88))) =(0x2ab313);
 }
+#endif
+#ifdef CONFIG_KVIM2L
+void mmc_bus_init(void)
+{
+	*P_PAD_PULL_UP_EN_REG2 = 0xffffffff;
+	*P_PAD_PULL_UP_REG2 = 0xffffffff;
+	*P_PERIPHS_PIN_MUX_7 = 0xf0000000;
+	(*((volatile unsigned *)((volatile uint32_t *)0xc1108c88))) =(0x2ab313);
+}
+#endif
+
 
 int mmc_init(struct mmc *mmc)
 {
@@ -1577,8 +1584,12 @@ int mmc_init(struct mmc *mmc)
 		return 0;
 
 	start = get_timer(0);
-
+#ifdef CONFIG_KVIM2
 	mmc_bus_init();
+#endif
+#ifdef CONFIG_KVIM2L
+	mmc_bus_init();
+#endif
 
 	if (!mmc->init_in_progress)
 		err = mmc_start_init(mmc);
@@ -1865,7 +1876,7 @@ int mmc_key_write(unsigned char *buf, unsigned int size, uint32_t *actual_lenth)
 				__func__, __LINE__);
 			return 1;
 		}
-		start_blk += vpart->size / MMC_BLOCK_SIZE;
+		start_blk += MMC_KEY_SIZE / MMC_BLOCK_SIZE;
 	} while (--i);
 	info_disprotect &= ~DISPROTECT_KEY;
 	return 0;

@@ -70,10 +70,6 @@
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL8 0xFFFFFFFF
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL9 0xFFFFFFFF
 
-/*config the default parameters for adc power key*/
-#define CONFIG_ADC_POWER_KEY_CHAN   2  /*channel range: 0-7*/
-#define CONFIG_ADC_POWER_KEY_VAL    0  /*sample value range: 0-1023*/
-
 /* args/envs */
 #define CONFIG_SYS_MAXARGS  64
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -139,6 +135,7 @@
             "fi;fi;fi;fi;"\
             "\0" \
         "storeboot="\
+            "hdmitx output 1080p60hz;"\
             "if imgread kernel ${boot_part} ${loadaddr}; then bootm ${loadaddr}; fi;"\
             "run update;"\
             "\0"\
@@ -202,9 +199,6 @@
                 "if keyman read usid ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
                     "setenv serial ${usid};"\
-                "else "\
-                    "setenv bootargs ${bootargs} androidboot.serialno=1234567890;"\
-                    "setenv serial 1234567890;"\
                 "fi;"\
                 "if keyman read mac ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} mac=${mac} androidboot.mac=${mac};"\
@@ -373,7 +367,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"txlx_skt"
 
 //UBOOT Facotry usb/sdcard burning config

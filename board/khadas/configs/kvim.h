@@ -2,7 +2,7 @@
 /*
  * board/khadas/configs/kvim.h
  *
- * Copyright (C) 2015 Khadas, Inc. All rights reserved.
+ * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,10 +42,9 @@
 #define CONFIG_VDDEE_SLEEP_VOLTAGE	 850		// voltage for suspend
 
 /* configs for CEC */
-#define CONFIG_CEC_OSD_NAME		"Kvim"
-#define CONFIG_CEC_WAKEUP
+#define CONFIG_CEC_OSD_NAME		"KVim"
 
-//#define CONFIG_INSTABOOT
+#define CONFIG_INSTABOOT
 /* configs for dtb in boot.img */
 //#define DTB_BIND_KERNEL
 
@@ -57,6 +56,8 @@
 
 /*config irblaster*/
 #define CONFIG_CMD_IRBLASTER 1
+
+#define CONFIG_KHADAS_CFGLOAD 1
 
 /* support ext4*/
 #define CONFIG_CMD_EXT4 1
@@ -78,7 +79,7 @@
 //#define CONFIG_AML_IRDETECT_EARLY
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_CNT 4
 #define CONFIG_IR_REMOTE_USE_PROTOCOL 0         // 0:nec  1:duokan  2:Toshiba 3:rca 4:rcmm
-#define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL1 0XE51AFB04 //amlogic tv ir --- power
+#define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL1 0XEB14FF00 //amlogic tv ir --- power
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL2 0Xffffffff //amlogic tv ir --- ch+
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL3 0xffffffff //amlogic tv ir --- ch-
 #define CONFIG_IR_REMOTE_POWER_UP_KEY_VAL4 0xBA45BD02
@@ -87,64 +88,152 @@
 /* args/envs */
 #define CONFIG_SYS_MAXARGS  64
 #define CONFIG_EXTRA_ENV_SETTINGS \
-			"boardname=kvim\0" \
-			"loadaddr=1080000\0" \
-			"dtb_mem_addr=0x1000000\0" \
-			"fdt_high=0x20000000\0" \
-			"outputmode=1080p60hz\0" \
-			"hdmimode=1080p60hz\0" \
-			"display_width=1920\0" \
-			"display_height=1080\0" \
-			"display_bpp=16\0" \
-			"display_color_index=16\0" \
-			"display_layer=osd1\0" \
-			"display_color_fg=0xffff\0" \
-			"display_color_bg=0\0" \
-			"fb_addr=0x3d800000\0" \
-			"fb_width=1920\0" \
-			"fb_height=1080\0" \
-			"sdcburncfg=aml_sdc_burn.ini\0"\
-			"sdc_burning=sdc_burn ${sdcburncfg}\0"\
-			"usb_burning=update 1000\0" \
-			"init_display=" \
-				"osd open;" \
-				"osd clear;" \
-				"imgread pic logo bootup ${loadaddr};" \
-				"bmp display ${bootup_offset}; bmp scale" \
-        	"\0"\
-			"bootdisk=ramdisk\0" \
-			"bootargs=" \
-				"root=LABEL=ROOTFS rootflags=data=writeback rw logo=osd1,loaded,0x3d800000,1080p60hz vout=1080p60hz,enable hdmimode=1080p60hz console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 jtag=disable\0" \
-			"combine_key="\
-				"saradc open 0;"\
-				"if saradc get_in_range 0x0 0x1f; then "\
-					"echo Detect function key;"\
-					"if gpio input GPIOAO_2; then "\
-						"echo Detect combine keys;"\
-						"store init 3; fi;"\
-				"fi;"\
-				"\0"\
-			"update="\
-				/*first usb burning, second sdc_burn*/\
-				"run usb_burning; "\
-				"run sdc_burning; "\
-				"\0"\
-			"upgrade_key=" \
-				"if gpio input GPIOAO_2; then " \
-					"echo Found upgrade button pressed; sleep 1;" \
-					"if gpio input GPIOAO_2; then run update; fi;" \
-				"fi;" \
-			"\0"
-/* boot partition name for dual boot
- * - boot: for Android OS
- * - ramdisk: Ubuntu or Linux distro
- */
-#define CONFIG_PREBOOT \
-	"run init_display;" \
-	"run combine_key;" \
-	"run upgrade_key;"
+        "firstboot=0\0"\
+        "upgrade_step=0\0"\
+        "jtag=disable\0"\
+        "loadaddr=1080000\0"\
+        "outputmode=1080p60hz\0" \
+        "hdmimode=1080p60hz\0" \
+        "cvbsmode=576cvbs\0" \
+        "display_width=1920\0" \
+        "display_height=1080\0" \
+        "display_bpp=16\0" \
+        "display_color_index=16\0" \
+        "display_layer=osd1\0" \
+        "display_color_fg=0xffff\0" \
+        "display_color_bg=0\0" \
+        "dtb_mem_addr=0x1000000\0" \
+        "fb_addr=0x3d800000\0" \
+        "fb_width=1920\0" \
+        "fb_height=1080\0" \
+        "usb_burning=update 1000\0" \
+        "fdt_high=0x20000000\0"\
+        "try_auto_burn=update 700 750;\0"\
+        "sdcburncfg=aml_sdc_burn.ini\0"\
+        "sdc_burning=sdc_burn ${sdcburncfg}\0"\
+        "wipe_data=successful\0"\
+        "wipe_cache=successful\0"\
+        "EnableSelinux=permissive\0"\
+        "recovery_part=recovery\0"\
+        "recovery_offset=0\0"\
+        "cvbs_drv=0\0"\
+        "active_slot=_a\0"\
+        "boot_part=boot\0"\
+        "initargs="\
+            "root=LABEL=ROOTFS rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 "\
+            "\0"\
+        "upgrade_check="\
+            "echo upgrade_step=${upgrade_step}; "\
+            "if itest ${upgrade_step} == 3; then "\
+                "run init_display; run storeargs; run update;"\
+            "else fi;"\
+            "\0"\
+    "storeargs="\
+            "setenv bootargs ${initargs} logo=${display_layer},loaded,${fb_addr},${outputmode} maxcpus=${maxcpus} vout=${outputmode},enable hdmimode=${hdmimode} cvbsmode=${cvbsmode} hdmitx=${cecconfig} cvbsdrv=${cvbs_drv} jtag=${jtag}; "\
+            "run cmdline_keys;"\
+            "\0"\
+        "switch_bootmode="\
+            "get_rebootmode;"\
+            "if test ${reboot_mode} = factory_reset; then "\
+                    "run recovery_from_flash;"\
+            "else if test ${reboot_mode} = update; then "\
+                    "run update;"\
+            "else if test ${reboot_mode} = cold_boot; then "\
+                /*"run try_auto_burn; "*/\
+            "else if test ${reboot_mode} = fastboot; then "\
+                "fastboot;"\
+            "fi;fi;fi;fi;"\
+            "\0" \
+        "storeboot="\
+            "if imgread kernel ${boot_part} ${loadaddr}; then bootm ${loadaddr}; fi;"\
+            "run update;"\
+            "\0"\
+         "update="\
+            /*first usb burning, second sdc_burn, third ext-sd autoscr/recovery, last udisk autoscr/recovery*/\
+            "run usb_burning; "\
+            "run sdc_burning; "\
+            "if mmcinfo; then "\
+                "run recovery_from_sdcard;"\
+            "fi;"\
+            "if usb start 0; then "\
+                "run recovery_from_udisk;"\
+            "fi;"\
+            "run recovery_from_flash;"\
+            "\0"\
+        "recovery_from_sdcard="\
+            "setenv bootargs ${bootargs} aml_dt=${aml_dt} recovery_part={recovery_part} recovery_offset={recovery_offset};"\
+            "if fatload mmc 0 ${loadaddr} aml_autoscript; then autoscr ${loadaddr}; fi;"\
+            "if fatload mmc 0 ${loadaddr} recovery.img; then "\
+                    "if fatload mmc 0 ${dtb_mem_addr} dtb.img; then echo sd dtb.img loaded; fi;"\
+                    "wipeisb; "\
+                    "bootm ${loadaddr};fi;"\
+            "\0"\
+        "recovery_from_udisk="\
+            "setenv bootargs ${bootargs} aml_dt=${aml_dt} recovery_part={recovery_part} recovery_offset={recovery_offset};"\
+            "if fatload usb 0 ${loadaddr} aml_autoscript; then autoscr ${loadaddr}; fi;"\
+            "if fatload usb 0 ${loadaddr} recovery.img; then "\
+                "if fatload usb 0 ${dtb_mem_addr} dtb.img; then echo udisk dtb.img loaded; fi;"\
+                "wipeisb; "\
+                "bootm ${loadaddr};fi;"\
+            "\0"\
+        "recovery_from_flash="\
+            "setenv bootargs ${bootargs} aml_dt=${aml_dt} recovery_part={recovery_part} recovery_offset={recovery_offset};"\
+            "if itest ${upgrade_step} == 3; then "\
+                "if ext4load mmc 1:2 ${dtb_mem_addr} /recovery/dtb.img; then echo cache dtb.img loaded; fi;"\
+                "if ext4load mmc 1:2 ${loadaddr} /recovery/recovery.img; then echo cache recovery.img loaded; wipeisb; bootm ${loadaddr}; fi;"\
+            "else fi;"\
+            "if imgread kernel ${recovery_part} ${loadaddr} ${recovery_offset}; then wipeisb; bootm ${loadaddr}; fi;"\
+            "\0"\
+        "init_display="\
+            "osd open;osd clear;imgread pic logo bootup $loadaddr;bmp display $bootup_offset;bmp scale"\
+            "\0"\
+        "cmdline_keys="\
+            "if keyman init 0x1234; then "\
+                "if keyman read usid ${loadaddr} str; then "\
+                    "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
+                    "setenv serial ${usid};"\
+                "fi;"\
+                "if keyman read mac ${loadaddr} str; then "\
+                    "setenv bootargs ${bootargs} mac=${mac} androidboot.mac=${mac};"\
+                "fi;"\
+                "if keyman read deviceid ${loadaddr} str; then "\
+                    "setenv bootargs ${bootargs} androidboot.deviceid=${deviceid};"\
+                "fi;"\
+            "fi;"\
+            "\0"\
+        "combine_key="\
+            "saradc open 0;"\
+            "if saradc get_in_range 0x0 0x1f; then "\
+            "echo Detect function key;"\
+            "if gpio input GPIOAO_2; then "\
+                "echo Detect combine keys;"\
+                "store init 3; fi;"\
+            "fi;"\
+            "\0"\
+        "upgrade_key="\
+            "if gpio input GPIOAO_2; then "\
+                "echo detect upgrade key; sleep 3;"\
+                "if gpio input GPIOAO_2; then run update; fi;"\
+            "fi;"\
+            "\0"\
+        "vim_check="\
+            "saradc open 1;"\
+            "if saradc get_in_range 0x1a0 0x220; then "\
+                "echo Product checking: pass!;"\
+            "else if saradc get_in_range 0x0 0x1cf; then "\
+                "echo Product checking: fail!; sleep 5; reboot;"\
+            "fi;fi;"\
+            "\0"\
 
-#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000"
+#define CONFIG_PREBOOT  \
+            "run upgrade_check;"\
+            "run init_display;"\
+            "run storeargs;"\
+            "run combine_key;" \
+            "run upgrade_key;" \
+            "run vim_check;" \
+            "run switch_bootmode;"
+#define CONFIG_BOOTCOMMAND "cfgload;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000;run update;"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
@@ -181,18 +270,15 @@
 #define CONFIG_DDR_LOW_POWER			0 //0:disable, 1:enable. ddr clk gate for lp
 #define CONFIG_DDR_ZQ_PD				0 //0:disable, 1:enable. ddr zq power down
 #define CONFIG_DDR_USE_EXT_VREF			0 //0:disable, 1:enable. ddr use external vref
-#define CONFIG_DDR_FUNC_PRINT_WINDOW	0 //0:disable, 1:enable. print ddr training window
 
 /* storage: emmc/nand/sd */
 #define	CONFIG_STORE_COMPATIBLE 1
 /*
-*				storage
-*		|---------|---------|
-*		|					|
-*		emmc<--Compatible-->nand
-*					|-------|-------|
-*					|				|
-*					MTD<-Exclusive->NFTL
+*             storage
+*
+*       emmc<--Compatible-->nand
+*       MTD<-Exclusive->NFTL
+*
 */
 
 /* swither for mtd nand which is for slc only. */
@@ -209,17 +295,17 @@
 #define CONFIG_CMD_NAND 1
 #define CONFIG_MTD_DEVICE y
 /* mtd parts of ourown.*/
-#define CONFIFG_AML_MTDPART	1
+#define CONFIFG_AML_MTDPART    1
 /* mtd parts by env default way.*/
 /*
-#define MTDIDS_NAME_STR		"aml_nand.0"
-#define MTDIDS_DEFAULT		"nand1=" MTDIDS_NAME_STR
-#define MTDPARTS_DEFAULT	"mtdparts=" MTDIDS_NAME_STR ":" \
-					"3M@8192K(logo),"	\
-					"10M(recovery),"	\
-					"8M(kernel),"	\
-					"40M(rootfs),"	\
-					"-(data)"
+#define MTDIDS_NAME_STR                "aml_nand.0"
+#define MTDIDS_DEFAULT         "nand1=" MTDIDS_NAME_STR
+#define MTDPARTS_DEFAULT       "mtdparts=" MTDIDS_NAME_STR ":" \
+                                       "3M@8192K(logo),"       \
+                                       "10M(recovery),"        \
+                                       "8M(kernel),"   \
+                                       "40M(rootfs),"  \
+                                       "-(data)"
 */
 #define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
@@ -247,9 +333,8 @@
 #endif
 
 /* env */
-#define 	CONFIG_ENV_OVERWRITE
-#define 	CONFIG_CMD_SAVEENV
-
+#define        CONFIG_ENV_OVERWRITE
+#define        CONFIG_CMD_SAVEENV
 
 /* env checks */
 #if (defined(CONFIG_ENV_IS_IN_AMLNAND) || defined(CONFIG_ENV_IS_IN_MMC)) && defined(CONFIG_STORE_COMPATIBLE)
@@ -272,7 +357,7 @@
 #define CONFIG_CMD_BMP 1
 
 #if defined(CONFIG_AML_VOUT)
-#undef CONFIG_AML_CVBS
+#define CONFIG_AML_CVBS 1
 #endif
 
 /* USB
@@ -297,7 +382,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"p212"
 
 //UBOOT Facotry usb/sdcard burning config
@@ -320,7 +404,7 @@
 	#define CONFIG_CMD_PING 1
 	#define CONFIG_CMD_DHCP 1
 	#define CONFIG_CMD_RARP 1
-	#define CONFIG_HOSTNAME        arm_gxbb
+	#define CONFIG_HOSTNAME        KVim
 	#define CONFIG_RANDOM_ETHADDR  1				   /* use random eth addr, or default */
 	#define CONFIG_ETHADDR         00:15:18:01:81:31   /* Ethernet address */
 	#define CONFIG_IPADDR          10.18.9.97          /* Our ip address */
@@ -357,8 +441,6 @@
 #define CONFIG_FS_FAT 1
 #define CONFIG_FS_EXT4 1
 #define CONFIG_LZO 1
-#define CONFIG_CMD_EXT2 1
-#define CONFIG_CMD_EXT4 1
 
 /* Cache Definitions */
 //#define CONFIG_SYS_DCACHE_OFF
@@ -375,8 +457,9 @@
 #define CONFIG_CMD_ITEST    1
 #define CONFIG_CMD_CPU_TEMP 1
 #define CONFIG_SYS_MEM_TOP_HIDE 0x08000000 //hide 128MB for kernel reserve
-//#define CONFIG_MULTI_DTB	1
 
+#define CONFIG_CMDLINE_EDITING 1
+#define CONFIG_AUTO_COMPLETE 1
 #define CONFIG_CMD_CHIPID 1
 /* debug mode defines */
 //#define CONFIG_DEBUG_MODE           1
@@ -385,9 +468,6 @@
 #define CONFIG_CPU_CLK_DEBUG        600
 #endif
 
-#define CONFIG_CMDLINE_EDITING 1
-#define CONFIG_AUTO_COMPLETE 1
-#define CONFIG_KHADAS_CFGLOAD 1
 //support secure boot
 #define CONFIG_AML_SECURE_UBOOT   1
 

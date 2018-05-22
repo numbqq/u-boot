@@ -1,5 +1,4 @@
 
-
 /*
  *
  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
@@ -351,8 +350,8 @@ ddr_timing_t __ddr_timming[] = {
 	/* ddr4 2400 timing */
 	{
 		.identifier				= CONFIG_DDR_TIMMING_DDR4_2400,
-		.cfg_ddr_rtp			= (4),
-		.cfg_ddr_wtr			= (6),
+		.cfg_ddr_rtp			= 4,//(4),
+		.cfg_ddr_wtr			= 6,//(6),
 		.cfg_ddr_rp				= 15*1.2,//(11),
 		.cfg_ddr_rcd			= 15*1.2,//(11),
 		.cfg_ddr_ras			= 35*1.2,//(35),
@@ -563,9 +562,9 @@ ddr_set_t __ddr_setting = {
 	.t_pub_zq3pr			= 0x1dd1d,   //PUB ZQ3PR
 #else // ddr3 and auto
 /* p212 4layer board ddr3 */
-	.t_pub_zq0pr                    = 0x5d959,   //PUB ZQ0PR
-	.t_pub_zq1pr                    = 0x5d91d,   //PUB ZQ1PR
-	.t_pub_zq2pr                    = 0x5d91d,   //PUB ZQ2PR
+	.t_pub_zq0pr			= 0x5d959,   //PUB ZQ0PR
+	.t_pub_zq1pr			= 0x5d91d,   //PUB ZQ1PR
+	.t_pub_zq2pr			= 0x5d91d,   //PUB ZQ2PR
 	.t_pub_zq3pr			= 0x1dd1d,   //PUB ZQ3PR
 #endif
 
@@ -676,19 +675,4 @@ pll_set_t __pll_setting = {
 	.ddr_clk_debug			= CONFIG_DDR_CLK_DEBUG,
 	.cpu_clk_debug			= CONFIG_CPU_CLK_DEBUG,
 #endif
-	/* pll ssc setting:
-
-	.ddr_pll_ssc = 0x00120000, ppm1000 center SS, boot log show: Set ddr ssc: ppm1000
-	.ddr_pll_ssc = 0x00124000, ppm1000 up SS,     boot log show: Set ddr ssc: ppm1000+
-	.ddr_pll_ssc = 0x00128000, ppm1000 down SS,   boot log show: Set ddr ssc: ppm1000-
-
-	.ddr_pll_ssc = 0x00140000, ppm2000 center SS, boot log show: Set ddr ssc: ppm2000
-	.ddr_pll_ssc = 0x00144000, ppm2000 up SS,     boot log show: Set ddr ssc: ppm2000+
-	.ddr_pll_ssc = 0x00148000, ppm2000 down SS,   boot log show: Set ddr ssc: ppm2000-
-
-	.ddr_pll_ssc = 0x00160000, ppm3000 center SS, boot log show: Set ddr ssc: ppm3000
-	.ddr_pll_ssc = 0x00164000, ppm3000 up SS,     boot log show: Set ddr ssc: ppm3000+
-	.ddr_pll_ssc = 0x00168000, ppm3000 down SS,   boot log show: Set ddr ssc: ppm3000-
-	*/
-	.ddr_pll_ssc			= 0,
 };

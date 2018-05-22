@@ -246,8 +246,6 @@ ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
 endif
 
-export CROSS_COMPILE_T32=arm-none-eabi-
-
 KCONFIG_CONFIG	?= .config
 export KCONFIG_CONFIG
 
@@ -983,7 +981,7 @@ ifeq ($(CONFIG_AML_CRYPTO_IMG), y)
 	@cp -f $(FIP_FOLDER_SOC)/boot.img.encrypt $(FIP_FOLDER)/boot.img.encrypt
 endif
 	@cp -f $(FIP_FOLDER_SOC)/u-boot.* $(FIP_FOLDER)/
-	@rm -f $(FIP_FOLDER_SOC)/boot_new.bin
+	@rm -f $(FIP_FOLDER_SOC)/bl2_new.bin $(FIP_FOLDER_SOC)/boot_new.bin
 	@echo '$(FIP_FOLDER_SOC)/u-boot.bin build done!'
 
 #

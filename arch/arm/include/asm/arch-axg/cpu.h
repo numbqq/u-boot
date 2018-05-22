@@ -30,13 +30,13 @@
 #define CONFIG_AML_MESON_AXG 1
 
 /* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(11*1024*1024) /* 128M ddr support max 11M malloc */
+#define CONFIG_SYS_MALLOC_LEN		(64*1024*1024)
 
 /* dram */
 #define PHYS_SDRAM_1_BASE					0x00000000UL
 #define PHYS_SDRAM_1_SIZE					(CONFIG_DDR_SIZE << 20)
 #define CONFIG_SYS_SDRAM_BASE				PHYS_SDRAM_1_BASE
-#define CONFIG_SYS_INIT_SP_ADDR				(0x08000000)
+#define CONFIG_SYS_INIT_SP_ADDR				(0x20000000)
 
 #define CONFIG_SYS_TEXT_BASE		0x01000000 /*16MB rsv*/
 #define CONFIG_SYS_LOAD_ADDR		(PHYS_SDRAM_1_BASE + CONFIG_SYS_TEXT_BASE)
@@ -72,9 +72,5 @@
 
 //2017.05.19 AXG only support v3 format for normal & secure boot
 #define CONFIG_AML_SECURE_BOOT_V3 1
-
-
-//2017.06.08 new compress solution, only support BL33 LZ4 compress
-#define CONFIG_AML_BL33_COMPRESS_ENABLE 1
 
 #endif /* _CPU_H */

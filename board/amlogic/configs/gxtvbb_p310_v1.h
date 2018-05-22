@@ -225,9 +225,6 @@
 				"setenv bootargs ${bootargs} "\
 				"androidboot.serialno=${usid}; "\
 				"setenv serial ${usid};"\
-			"else "\
-				"setenv bootargs ${bootargs} androidboot.serialno=1234567890;"\
-				"setenv serial 1234567890;"\
 			"fi; "\
 			"if keyman read mac ${loadaddr} str; then "\
 				"setenv bootargs ${bootargs} "\
@@ -369,7 +366,6 @@
 #define CONFIG_USB_GADGET 1
 #define CONFIG_USBDOWNLOAD_GADGET 1
 #define CONFIG_SYS_CACHELINE_SIZE 64
-#define CONFIG_FASTBOOT_MAX_DOWN_SIZE	0x8000000
 #define CONFIG_DEVICE_PRODUCT	"p310"
 
 //UBOOT Facotry usb/sdcard burning config

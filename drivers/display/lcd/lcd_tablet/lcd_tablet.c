@@ -176,7 +176,7 @@ static int lcd_config_load_from_dts(char *dt_addr, struct lcd_config_s *pconf)
 
 	propdata = (char *)fdt_getprop(dt_addr, child_offset, "range_setting", NULL);
 	if (propdata == NULL) {
-		LCDPR("failed to get range_setting\n");
+		LCDERR("failed to get range_setting\n");
 		pconf->lcd_basic.h_period_min = pconf->lcd_basic.h_period;
 		pconf->lcd_basic.h_period_max = pconf->lcd_basic.h_period;
 		pconf->lcd_basic.v_period_min = pconf->lcd_basic.v_period;
@@ -353,10 +353,6 @@ static int lcd_config_load_from_dts(char *dt_addr, struct lcd_config_s *pconf)
 			pconf->lcd_control.mipi_config->clk_lp_continuous = be32_to_cpup((((u32*)propdata)+6));
 			pconf->lcd_control.mipi_config->phy_stop_wait = be32_to_cpup((((u32*)propdata)+7));
 		}
-
-		lcd_mipi_dsi_init_table_detect(dt_addr, child_offset, pconf->lcd_control.mipi_config, 1);
-		lcd_mipi_dsi_init_table_detect(dt_addr, child_offset, pconf->lcd_control.mipi_config, 0);
-
 		propdata = (char *)fdt_getprop(dt_addr, child_offset, "extern_init", NULL);
 		if (propdata == NULL) {
 			LCDERR("failed to get extern_init\n");
@@ -579,19 +575,12 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 	}
 
 	aml_lcd_unifykey_header_check(para, &lcd_header);
-	LCDPR("unifykey version: 0x%04x\n", lcd_header.version);
-	switch (lcd_header.version) {
-	case 2:
-		len = 10 + 36 + 18 + 31 + 20 + 44 + 10;
-		break;
-	default:
-		len = 10 + 36 + 18 + 31 + 20;
-		break;
-	}
+	len = 10 + 36 + 18 + 31 + 20;
 	if (lcd_debug_print_flag) {
 		LCDPR("unifykey header:\n");
 		LCDPR("crc32             = 0x%08x\n", lcd_header.crc32);
 		LCDPR("data_len          = %d\n", lcd_header.data_len);
+		LCDPR("version           = 0x%04x\n", lcd_header.version);
 		LCDPR("reserved          = 0x%04x\n", lcd_header.reserved);
 	}
 
@@ -650,6 +639,7 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 	pconf->lcd_timing.lcd_clk = (*p | ((*(p + 1)) << 8) |
 		((*(p + 2)) << 16) | ((*(p + 3)) << 24));
 	p += LCD_UKEY_PCLK;
+	/* dummy pointer */
 	pconf->lcd_basic.h_period_min = (*p | ((*(p + 1)) << 8));
 	p += LCD_UKEY_H_PERIOD_MIN;
 	pconf->lcd_basic.h_period_max = (*p | ((*(p + 1)) << 8));
@@ -670,24 +660,7 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 
 	/* interface: 20byte */
 	if (pconf->lcd_basic.lcd_type == LCD_LVDS) {
-		if (lcd_header.version == 2) {
-			pconf->lcd_control.lvds_config->lvds_repack = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_0;
-			pconf->lcd_control.lvds_config->dual_port = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_1;
-			pconf->lcd_control.lvds_config->pn_swap = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_2;
-			pconf->lcd_control.lvds_config->port_swap = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_3;
-			pconf->lcd_control.lvds_config->lane_reverse= (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_4;
-			/* dummy pointer */
-			p += LCD_UKEY_IF_ATTR_5;
-			p += LCD_UKEY_IF_ATTR_6;
-			p += LCD_UKEY_IF_ATTR_7;
-			p += LCD_UKEY_IF_ATTR_8;
-			p += LCD_UKEY_IF_ATTR_9;
-		} else {
+		if (lcd_header.version == 1) {
 			pconf->lcd_control.lvds_config->lvds_repack = (*p | ((*(p + 1)) << 8)) & 0xff;
 			p += LCD_UKEY_IF_ATTR_0;
 			pconf->lcd_control.lvds_config->dual_port = (*p | ((*(p + 1)) << 8)) & 0xff;
@@ -704,12 +677,35 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 			p += LCD_UKEY_IF_ATTR_6;
 			pconf->lcd_control.lvds_config->phy_clk_preem = (*p | ((*(p + 1)) << 8)) & 0xff;
 			p += LCD_UKEY_IF_ATTR_7;
-			/* dummy pointer */
-			p += LCD_UKEY_IF_ATTR_8;
-			p += LCD_UKEY_IF_ATTR_9;
-
 			pconf->lcd_control.lvds_config->lane_reverse= 0;
-		}
+			p += LCD_UKEY_IF_ATTR_8;
+
+			/* dummy pointer */
+			p += LCD_UKEY_IF_ATTR_9;
+			}
+		else if (lcd_header.version == 2) {
+			pconf->lcd_control.lvds_config->lvds_repack = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_0;
+			pconf->lcd_control.lvds_config->dual_port = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_1;
+			pconf->lcd_control.lvds_config->pn_swap  = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_2;
+			pconf->lcd_control.lvds_config->port_swap  = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_3;
+			pconf->lcd_control.lvds_config->lane_reverse= (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_4;
+			pconf->lcd_control.lvds_config->phy_vswing = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_5;
+			pconf->lcd_control.lvds_config->phy_preem = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_6;
+			pconf->lcd_control.lvds_config->phy_clk_vswing = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_7;
+			pconf->lcd_control.lvds_config->phy_clk_preem = (*p | ((*(p + 1)) << 8)) & 0xff;
+			p += LCD_UKEY_IF_ATTR_8;
+			/* dummy pointer */
+
+			p += LCD_UKEY_IF_ATTR_9;
+			}
 	} else if (pconf->lcd_basic.lcd_type == LCD_TTL) {
 		pconf->lcd_control.ttl_config->clk_pol = (*p | ((*(p + 1)) << 8)) & 0x1;
 		p += LCD_UKEY_IF_ATTR_0;
@@ -732,41 +728,23 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 		p += LCD_UKEY_IF_ATTR_8;
 		p += LCD_UKEY_IF_ATTR_9;
 	} else if (pconf->lcd_basic.lcd_type == LCD_VBYONE) {
-		if (lcd_header.version == 2) {
-			pconf->lcd_control.vbyone_config->lane_count = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_0;
-			pconf->lcd_control.vbyone_config->region_num = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_1;
-			pconf->lcd_control.vbyone_config->byte_mode  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_2;
-			pconf->lcd_control.vbyone_config->color_fmt  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_3;
-			/* dummy pointer */
-			p += LCD_UKEY_IF_ATTR_4;
-			p += LCD_UKEY_IF_ATTR_5;
-			p += LCD_UKEY_IF_ATTR_6;
-			p += LCD_UKEY_IF_ATTR_7;
-			p += LCD_UKEY_IF_ATTR_8;
-			p += LCD_UKEY_IF_ATTR_9;
-		} else {
-			pconf->lcd_control.vbyone_config->lane_count = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_0;
-			pconf->lcd_control.vbyone_config->region_num = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_1;
-			pconf->lcd_control.vbyone_config->byte_mode  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_2;
-			pconf->lcd_control.vbyone_config->color_fmt  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_3;
-			pconf->lcd_control.vbyone_config->phy_vswing = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_4;
-			pconf->lcd_control.vbyone_config->phy_preem  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_IF_ATTR_5;
-			/* dummy pointer */
-			p += LCD_UKEY_IF_ATTR_6;
-			p += LCD_UKEY_IF_ATTR_7;
-			p += LCD_UKEY_IF_ATTR_8;
-			p += LCD_UKEY_IF_ATTR_9;
-		}
+		pconf->lcd_control.vbyone_config->lane_count = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_0;
+		pconf->lcd_control.vbyone_config->region_num = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_1;
+		pconf->lcd_control.vbyone_config->byte_mode  = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_2;
+		pconf->lcd_control.vbyone_config->color_fmt  = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_3;
+		pconf->lcd_control.vbyone_config->phy_vswing = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_4;
+		pconf->lcd_control.vbyone_config->phy_preem  = (*p | ((*(p + 1)) << 8)) & 0xff;
+		p += LCD_UKEY_IF_ATTR_5;
+		/* dummy pointer */
+		p += LCD_UKEY_IF_ATTR_6;
+		p += LCD_UKEY_IF_ATTR_7;
+		p += LCD_UKEY_IF_ATTR_8;
+		p += LCD_UKEY_IF_ATTR_9;
 	}  else if (pconf->lcd_basic.lcd_type == LCD_MIPI) {
 		pconf->lcd_control.mipi_config->lane_num = (*p | ((*(p + 1)) << 8)) & 0xff;
 		p += LCD_UKEY_IF_ATTR_0;
@@ -803,78 +781,6 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 		p += LCD_UKEY_IF_ATTR_7;
 		p += LCD_UKEY_IF_ATTR_8;
 		p += LCD_UKEY_IF_ATTR_9;
-	}
-
-	if (lcd_header.version == 2) {
-		/* ctrl: 44byte */
-		/* dummy pointer */
-		p += LCD_UKEY_CTRL_FLAG;
-		p += LCD_UKEY_CTRL_ATTR_0;
-		p += LCD_UKEY_CTRL_ATTR_1;
-		p += LCD_UKEY_CTRL_ATTR_2;
-		p += LCD_UKEY_CTRL_ATTR_3;
-		p += LCD_UKEY_CTRL_ATTR_4;
-		p += LCD_UKEY_CTRL_ATTR_5;
-		p += LCD_UKEY_CTRL_ATTR_6;
-		p += LCD_UKEY_CTRL_ATTR_7;
-		p += LCD_UKEY_CTRL_ATTR_8;
-		p += LCD_UKEY_CTRL_ATTR_9;
-		p += LCD_UKEY_CTRL_ATTR_10;
-		p += LCD_UKEY_CTRL_ATTR_11;
-		p += LCD_UKEY_CTRL_ATTR_12;
-		p += LCD_UKEY_CTRL_ATTR_13;
-		p += LCD_UKEY_CTRL_ATTR_14;
-		p += LCD_UKEY_CTRL_ATTR_15;
-		p += LCD_UKEY_CTRL_ATTR_16;
-		p += LCD_UKEY_CTRL_ATTR_17;
-		p += LCD_UKEY_CTRL_ATTR_18;
-		p += LCD_UKEY_CTRL_ATTR_19;
-	}
-
-	if (lcd_header.version == 2) {
-		/* phy: 10byte */
-		if (pconf->lcd_basic.lcd_type == LCD_LVDS) {
-			pconf->lcd_control.lvds_config->phy_vswing = *p;
-			p += LCD_UKEY_PHY_ATTR_0;
-			pconf->lcd_control.lvds_config->phy_preem = *p;
-			p += LCD_UKEY_PHY_ATTR_1;
-			pconf->lcd_control.lvds_config->phy_clk_vswing = *p;
-			p += LCD_UKEY_PHY_ATTR_2;
-			pconf->lcd_control.lvds_config->phy_clk_preem = *p;
-			p += LCD_UKEY_PHY_ATTR_3;
-			/* dummy pointer */
-			p += LCD_UKEY_PHY_ATTR_4;
-			p += LCD_UKEY_PHY_ATTR_5;
-			p += LCD_UKEY_PHY_ATTR_6;
-			p += LCD_UKEY_PHY_ATTR_7;
-			p += LCD_UKEY_PHY_ATTR_8;
-			p += LCD_UKEY_PHY_ATTR_9;
-		} else if (pconf->lcd_basic.lcd_type == LCD_VBYONE) {
-			pconf->lcd_control.vbyone_config->phy_vswing = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_PHY_ATTR_0;
-			pconf->lcd_control.vbyone_config->phy_preem  = (*p | ((*(p + 1)) << 8)) & 0xff;
-			p += LCD_UKEY_PHY_ATTR_1;
-			/* dummy pointer */
-			p += LCD_UKEY_PHY_ATTR_2;
-			p += LCD_UKEY_PHY_ATTR_3;
-			p += LCD_UKEY_PHY_ATTR_4;
-			p += LCD_UKEY_PHY_ATTR_5;
-			p += LCD_UKEY_PHY_ATTR_6;
-			p += LCD_UKEY_PHY_ATTR_7;
-			p += LCD_UKEY_PHY_ATTR_8;
-			p += LCD_UKEY_PHY_ATTR_9;
-		} else {
-			p += LCD_UKEY_PHY_ATTR_0;
-			p += LCD_UKEY_PHY_ATTR_1;
-			p += LCD_UKEY_PHY_ATTR_2;
-			p += LCD_UKEY_PHY_ATTR_3;
-			p += LCD_UKEY_PHY_ATTR_4;
-			p += LCD_UKEY_PHY_ATTR_5;
-			p += LCD_UKEY_PHY_ATTR_6;
-			p += LCD_UKEY_PHY_ATTR_7;
-			p += LCD_UKEY_PHY_ATTR_8;
-			p += LCD_UKEY_PHY_ATTR_9;
-		}
 	}
 
 	/* step 3: check power sequence */

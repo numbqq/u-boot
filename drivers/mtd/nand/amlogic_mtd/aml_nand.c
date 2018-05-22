@@ -1886,9 +1886,9 @@ static void inline nand_get_chip(void )
 		AMLNF_CLEAR_REG_MASK(P_PERIPHS_PIN_MUX_4, (0x3 << 18));
 		AMLNF_CLEAR_REG_MASK(P_PERIPHS_PIN_MUX_5, (0xF));
 	} else if (cpu_id.family_id == MESON_CPU_MAJOR_ID_AXG) {
-		AMLNF_SET_REG_MASK(P_PAD_PULL_UP_EN_REG4, 0x61ff);
-		AMLNF_SET_REG_MASK(P_PAD_PULL_UP_REG4, 0x6100);
-
+		/* axg */
+		AMLNF_WRITE_REG(P_PAD_PULL_UP_EN_REG2, 0xffff87ff);
+		AMLNF_WRITE_REG(P_PAD_PULL_UP_REG2, 0xffff8700);
 		AMLNF_WRITE_REG(P_PERIPHS_PIN_MUX_0, 0x11111111);
 		AMLNF_WRITE_REG(P_PERIPHS_PIN_MUX_1,
 			(AMLNF_READ_REG(P_PERIPHS_PIN_MUX_1) & 0xfff000) | 0x22222);
@@ -3760,8 +3760,6 @@ int aml_nand_init(struct aml_nand_chip *aml_chip)
 		}
 	} else {
 		printk("pre nand scan failed\n");
-		/* set device boot flag as emmc if nand failed*/
-		device_boot_flag = EMMC_BOOT_FLAG;
 		err = -ENXIO;
 		goto exit_error;
 	}

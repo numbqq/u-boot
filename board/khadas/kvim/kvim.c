@@ -1,7 +1,7 @@
 
 /*
  *
- * Copyright (C) 2017 Khadas.com All rights reserved.
+ * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@
 #include <asm/arch/eth_setup.h>
 #include <phy.h>
 #include <asm/cpu_id.h>
+#include <asm/arch/mailbox.h>
 #ifdef DTB_BIND_KERNEL
 #include "storage.h"
 #endif
@@ -50,6 +51,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 //new static eth setup
 struct eth_board_socket*  eth_board_skt;
+
 
 int serial_set_pin_port(unsigned long port_base)
 {
@@ -367,24 +369,21 @@ int board_init(void)
 {
     //Please keep CONFIG_AML_V2_FACTORY_BURN at first place of board_init
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if ((0x1b8ec003 != readl(P_PREG_STICKY_REG2)) && (0x1b8ec004 != readl(P_PREG_STICKY_REG2))) {
+	if (0x1b8ec003 != readl(P_PREG_STICKY_REG2))
 		aml_try_factory_usb_burning(0, gd->bd);
-	}
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
-	/* LED Pin: GPIOAO_9 */
-	clrbits_le32(AO_GPIO_O_EN_N, 1 << 9);   // output mode
-	setbits_le32(AO_GPIO_O_EN_N, 1 << 25);  // set 1
 
-	/* FIXME: Power on GPIOAO_2 for VCC_5V*/
-	//clrbits_le32(P_AO_GPIO_O_EN_N, ((1<<2)|(1<<18)));
+	/* LED Pin: GPIOAO_9 */
+	clrbits_le32(AO_GPIO_O_EN_N, 1 << 9);	// output mode
+	setbits_le32(AO_GPIO_O_EN_N, 1 << 25);	// set 1
+
+	/*Power on GPIOAO_2 for VCC_5V*/
+	clrbits_le32(P_AO_GPIO_O_EN_N, ((1<<2)|(1<<18)));
 #ifdef CONFIG_USB_XHCI_AMLOGIC_GXL
 	board_usb_init(&g_usb_config_GXL_skt,BOARD_USB_MODE_HOST);
 #endif /*CONFIG_USB_XHCI_AMLOGIC*/
 	canvas_init();
-#ifdef CONFIG_AML_VPU
-	vpu_probe();
-#endif
-	vpp_init();
+
 #ifndef CONFIG_AML_IRDETECT_EARLY
 #ifdef CONFIG_AML_HDMITX20
 	hdmi_tx_set_hdmi_5v();
@@ -412,28 +411,128 @@ U_BOOT_CMD(hdmi_init, CONFIG_SYS_MAXARGS, 0, do_hdmi_init,
 #endif
 #endif
 #ifdef CONFIG_BOARD_LATE_INIT
-int board_late_init(void){
-	/* ENV need update in following cases:
-	 * - Bootloader upgrade
-	 * - New ROM upgrade(the built-in bootloader might be changed)
-	 */
-	run_command("get_rebootmode;" \
-				"echo reboot_mode=${reboot_mode};" \
-				"if test ${reboot_mode} = factory_reset; then " \
-					"defenv_reserv aml_dt;" \
-					"setenv upgrade_step 2;" \
-					"save;" \
-				"fi;", 0);
-	run_command("if itest ${upgrade_step} == 1; then " \
-					"defenv_reserv;" \
-					"setenv upgrade_step 2;" \
-					"saveenv;" \
-				"fi;", 0);
+#define SAMPLE_BIT_MASK 0xfff
+#define NUM 50
+#define BASE_CH7 1843
+#define P_SAR_ADC_REG0		    (volatile unsigned int *)0xc1108680
+#define P_SAR_ADC_CHAN_LIST	(volatile unsigned int *)0xc1108684
+#define P_SAR_ADC_REG3			(volatile unsigned int *)0xc110868c
+#define P_SAR_ADC_FIFO_RD			(volatile unsigned int *)0xc1108698
+#define P_SAR_ADC_DETECT_IDLE_SW	(volatile unsigned int *)0xc11086a4
+#define P_SAR_ADC_REG13			(volatile unsigned int *)0xc11086b4
+#if 0
+#define dbgv(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define dbgv(fmt, ...)
+#endif
+void quicksort1(unsigned int a[], int numsize)
+{
+	int i = 0, j = numsize-1;
+	int val = a[0];
+	if (numsize > 1) {
+		while (i < j) {
+			for (; j > i; j--)
+				if (a[j] < val) {
+					a[i] = a[j];
+					break;
+				}
+			for (; i < j; i++)
+				if (a[i] > val) {
+					a[j] = a[i];
+					break;
+				}
+		}
+	a[i] = val;
+	quicksort1(a, i);
+	quicksort1(a+i+1, numsize-1-i);
+}
+}
+int check_vref(void)
+{
+	int i,count;
+	unsigned int value[50];
+	unsigned int value7=0;
+	unsigned int bak, bak_reg3;
+	unsigned int vref_efuse = (readl(SEC_AO_SEC_SD_CFG12)>>19)&(0x1f);
 
-	/* HDMI setup */
-	run_command("hdmitx hpd", 0);
-	run_command("vout output $outputmode", 0);
-	/* Load DTB */
+	if (!vref_efuse) {
+		dbgv("This chip has no FT vref, no need to check, PASS\n");
+		return 0;
+	}
+	//run_command("md 0xc1108680 0x10", 0);
+	dbgv("SEC_AO_SEC_SD_CFG12: 0x%x\n",readl(SEC_AO_SEC_SD_CFG12));
+	dbgv("vref_efuse: %d\n",vref_efuse);
+
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	bak = (readl(P_SAR_ADC_REG13)>>8)&0x3f; /*back up SAR_ADC_REG13[13:8]*/
+	writel((readl(P_SAR_ADC_REG13)&(~(0x3f<<8)))|(vref_efuse<<9), P_SAR_ADC_REG13);
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	writel(0x00000007, P_SAR_ADC_CHAN_LIST);/*ch7*/
+	//writel(0xc000c|(0x7<<23)|(0x7<<7), P_SAR_ADC_DETECT_IDLE_SW);/*channel 7*/
+	bak_reg3 = readl(P_SAR_ADC_REG3);
+	writel((readl(P_SAR_ADC_REG3)&(~(0x7<<23)))|(0x2<<23), P_SAR_ADC_REG3);/*AVDD18/2*/
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	//run_command("md 0xc1108680 0x10", 0);
+	for (i=0;i<NUM;i++) {
+		writel((readl(P_SAR_ADC_REG0)&(~(1<<0))), P_SAR_ADC_REG0);
+		writel((readl(P_SAR_ADC_REG0)|(1<<0)), P_SAR_ADC_REG0);
+		writel((readl(P_SAR_ADC_REG0)|(1<<2)), P_SAR_ADC_REG0);/*start sample*/
+		count = 0;
+		do {
+			udelay(20);
+			count++;
+		} while ((readl(P_SAR_ADC_REG0) & (0x7<<28))
+		&& (count < 100));/*finish sample?*/
+		if (count == 100) {
+			printf("%s : ch7 wait finish sample timeout!\n",__func__);
+			return -1;
+		}
+		value[i] = readl(P_SAR_ADC_FIFO_RD); /*read saradc*/
+		if (((value[i]>>12) & 0x7) == 0x7)
+			value[i] = value[i]&SAMPLE_BIT_MASK;
+		else {
+			printf("%s : not ch7! sample err!\n",__func__);
+			return -1;
+		}
+	}
+	quicksort1(value, NUM);
+	for (i = 0; i < NUM; i++)
+		dbgv("%d ", value[i]);
+	dbgv("\n");
+	for (i = 2; i < NUM-2; i++)
+		value7 += value[i];
+	value7 = value7/(NUM-4);
+	dbgv("the average ch7 adc=%d\n", value7);
+	dbgv("vref_efuse: %d\n",vref_efuse);
+	if ((value7 < (BASE_CH7*94/100)) || (value7 > (BASE_CH7*106/100))) { //1843
+		printf("the average ch7 : %d out of range: %d ~ %d\n",
+			value7, (BASE_CH7*94/100), (BASE_CH7*106/100));
+		printf("replace FT vref...\n");
+		thermal_calibration(4, bak>>1); /*[13:9]*/
+	}
+	/*write back SAR_ADC_REG13[13:8]*/
+	writel(((readl(P_SAR_ADC_REG13))&(~(0x3f<<8)))|
+				((bak & 0x3f)<<8),
+				P_SAR_ADC_REG13);
+	writel(bak_reg3, P_SAR_ADC_REG3);
+	dbgv("P_SAR_ADC_REG13: 0x%x\n",readl(P_SAR_ADC_REG13));
+	dbgv("SEC_AO_SEC_SD_CFG12: 0x%x\n",readl(SEC_AO_SEC_SD_CFG12));
+	//run_command("md 0xc1108680 0x10", 0);
+	return 0;
+}
+
+int board_late_init(void){
+
+	run_command("if itest ${firstboot} == 1; then "\
+			"defenv_reserv;setenv firstboot 1; setenv upgrade_step 2; saveenv; fi;", 0);
+	//update env before anyone using it
+	run_command("get_rebootmode; echo reboot_mode=${reboot_mode}; "\
+			"if test ${reboot_mode} = factory_reset; then "\
+			"defenv_reserv aml_dt;setenv upgrade_step 2;save; fi;", 0);
+	run_command("if itest ${upgrade_step} == 1; then "\
+				"defenv_reserv; setenv upgrade_step 2; saveenv; fi;", 0);
+
+	/*add board late init function here*/
 #ifndef DTB_BIND_KERNEL
 	int ret;
 	ret = run_command("store dtb read $dtb_mem_addr", 1);
@@ -465,21 +564,22 @@ int board_late_init(void){
 		}
 #endif// #ifndef DTB_BIND_KERNEL
 
-	/* Khadas VIM check */
-	run_command("saradc open 1;" \
-				"if saradc get_in_range 0x1a0 0x220; then " \
-					"echo Product checking: Khadas VIM.;" \
-				"else  " \
-					"echo Product checking: Unknown!;" \
-					"sleep 5; reset;" \
-				"fi;", 0);
+#ifdef CONFIG_AML_VPU
+	vpu_probe();
+#endif
+	vpp_init();
+#ifndef CONFIG_AML_IRDETECT_EARLY
+	/* after  */
+	run_command("cvbs init;hdmitx hpd", 0);
+	run_command("vout output $outputmode", 0);
+#endif
 
 #ifdef CONFIG_AML_V2_FACTORY_BURN
 	if (0x1b8ec003 == readl(P_PREG_STICKY_REG2))
 		aml_try_factory_usb_burning(1, gd->bd);
 	aml_try_factory_sdcard_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
-
+	ret = check_vref();
 	if (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) {
 		setenv("maxcpus","4");
 	}
@@ -496,6 +596,39 @@ phys_size_t get_effective_memsize(void)
 	return (((readl(AO_SEC_GP_CFG0)) & 0xFFFF0000) << 4);
 #endif
 }
+
+#ifdef CONFIG_MULTI_DTB
+int checkhw(char * name)
+{
+	unsigned int ddr_size=0;
+	char loc_name[64] = {0};
+	int i;
+	for (i=0; i<CONFIG_NR_DRAM_BANKS; i++) {
+		ddr_size += gd->bd->bi_dram[i].size;
+	}
+#if defined(CONFIG_SYS_MEM_TOP_HIDE)
+	ddr_size += CONFIG_SYS_MEM_TOP_HIDE;
+#endif
+	switch (ddr_size) {
+		case 0x80000000:
+			strcpy(loc_name, "kvim_2g\0");
+			break;
+		case 0x40000000:
+			strcpy(loc_name, "kvim_1g\0");
+			break;
+		case 0x2000000:
+			strcpy(loc_name, "kvim_512m\0");
+			break;
+		default:
+			//printf("DDR size: 0x%x, multi-dt doesn't support\n", ddr_size);
+			strcpy(loc_name, "kvim_unsupport");
+			break;
+	}
+	strcpy(name, loc_name);
+	setenv("aml_dt", loc_name);
+	return 0;
+}
+#endif
 
 const char * const _env_args_reserve_[] =
 {

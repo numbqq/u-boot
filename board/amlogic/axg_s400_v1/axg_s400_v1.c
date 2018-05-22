@@ -47,9 +47,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/sizes.h>
 #include <asm/arch/clock.h>
-#include <asm-generic/gpio.h>
-#include <asm/arch/board_id.h>
-
 DECLARE_GLOBAL_DATA_PTR;
 
 //new static eth setup
@@ -277,57 +274,58 @@ int board_mmc_init(bd_t	*bis)
 //	board_mmc_register(SDIO_PORT_B1);
 	return 0;
 }
-#endif
 
 #ifdef CONFIG_SYS_I2C_AML
-struct aml_i2c_platform g_aml_i2c_plat = {
-};
-/* multi i2c bus */
-struct aml_i2c_platform g_aml_i2c_ports[] = {
-	{
-		.wait_count         = 1000000,
-		.wait_ack_interval  = 5,
-		.wait_read_interval = 5,
-		.wait_xfer_interval = 5,
-		.master_no          = AML_I2C_MASTER_AO,
-		.use_pio            = 0,
-		.master_i2c_speed   = CONFIG_SYS_I2C_SPEED,
-		.master_ao_pinmux = {
-			.scl_reg    = (unsigned long)MESON_I2C_MASTER_AO_GPIOAO_10_REG,
-			.scl_bit    = MESON_I2C_MASTER_AO_GPIOAO_10_BIT,
-			.sda_reg    = (unsigned long)MESON_I2C_MASTER_AO_GPIOAO_11_REG,
-			.sda_bit    = MESON_I2C_MASTER_AO_GPIOAO_11_BIT,
-		}
-	},
-	{
-		.wait_count         = 1000000,
-		.wait_ack_interval  = 5,
-		.wait_read_interval = 5,
-		.wait_xfer_interval = 5,
-		.master_no          = AML_I2C_MASTER_B,
-		.use_pio            = 0,
-		.master_i2c_speed   = CONFIG_SYS_I2C_SPEED,
-		.master_b_pinmux = {
-			.scl_reg    = (unsigned long)MESON_I2C_MASTER_B_GPIOZ_8_REG,
-			.scl_bit    = MESON_I2C_MASTER_B_GPIOZ_8_BIT,
-			.sda_reg    = (unsigned long)MESON_I2C_MASTER_B_GPIOZ_9_REG,
-			.sda_bit    = MESON_I2C_MASTER_B_GPIOZ_9_BIT,
-		}
-	},
-	/* sign of end */
-	{.master_i2c_speed=0},
-};
+#if 0
+static void board_i2c_set_pinmux(void){
+	/*********************************************/
+	/*                | I2C_Master_AO        |I2C_Slave            |       */
+	/*********************************************/
+	/*                | I2C_SCK                | I2C_SCK_SLAVE  |      */
+	/* GPIOAO_4  | [AO_PIN_MUX: 6]     | [AO_PIN_MUX: 2]   |     */
+	/*********************************************/
+	/*                | I2C_SDA                 | I2C_SDA_SLAVE  |     */
+	/* GPIOAO_5  | [AO_PIN_MUX: 5]     | [AO_PIN_MUX: 1]   |     */
+	/*********************************************/
 
+	//disable all other pins which share with I2C_SDA_AO & I2C_SCK_AO
+	clrbits_le32(P_AO_RTI_PIN_MUX_REG, ((1<<2)|(1<<24)|(1<<1)|(1<<23)));
+	//enable I2C MASTER AO pins
+	setbits_le32(P_AO_RTI_PIN_MUX_REG,
+	(MESON_I2C_MASTER_AO_GPIOAO_4_BIT | MESON_I2C_MASTER_AO_GPIOAO_5_BIT));
+
+	udelay(10);
+};
+#endif
+struct aml_i2c_platform g_aml_i2c_plat = {
+	.wait_count         = 1000000,
+	.wait_ack_interval  = 5,
+	.wait_read_interval = 5,
+	.wait_xfer_interval = 5,
+	.master_no          = AML_I2C_MASTER_AO,
+	.use_pio            = 0,
+	.master_i2c_speed   = AML_I2C_SPPED_400K,
+	.master_ao_pinmux = {
+		.scl_reg    = (unsigned long)MESON_I2C_MASTER_AO_GPIOAO_4_REG,
+		.scl_bit    = MESON_I2C_MASTER_AO_GPIOAO_4_BIT,
+		.sda_reg    = (unsigned long)MESON_I2C_MASTER_AO_GPIOAO_5_REG,
+		.sda_bit    = MESON_I2C_MASTER_AO_GPIOAO_5_BIT,
+	}
+};
+#if 0
 static void board_i2c_init(void)
 {
+	//set I2C pinmux with PCB board layout
+	board_i2c_set_pinmux();
+
 	//Amlogic I2C controller initialized
 	//note: it must be call before any I2C operation
-	extern void aml_i2c_set_ports(struct aml_i2c_platform *i2c_plat);
-	aml_i2c_set_ports(g_aml_i2c_ports);
+	aml_i2c_init();
 
 	udelay(10);
 }
-
+#endif
+#endif
 #endif
 
 #if defined(CONFIG_BOARD_EARLY_INIT_F)
@@ -364,81 +362,6 @@ struct amlogic_usb_config g_usb_config_GXL_skt={
 	CONFIG_GXL_USB_U3_PORT_NUM,
 };
 #endif /*CONFIG_USB_XHCI_AMLOGIC*/
-
-#ifdef CONFIG_AML_PCIE
-#include <asm/arch-axg/pci.h>
-
-static void pcie_init_reset_pin(void)
-{
-	int ret;
-
-	ret = gpio_request(CONFIG_AML_PCIEA_GPIO_RESET,
-		CONFIG_AML_PCIEA_GPIO_RESET_NAME);
-	if (ret && ret != -EBUSY) {
-		printf("gpio: requesting pin %u failed\n", CONFIG_AML_PCIEA_GPIO_RESET);
-		return;
-	}
-	gpio_direction_output(CONFIG_AML_PCIEA_GPIO_RESET, 0);
-
-	ret = gpio_request(CONFIG_AML_PCIEB_GPIO_RESET,
-		CONFIG_AML_PCIEB_GPIO_RESET_NAME);
-	if (ret && ret != -EBUSY) {
-		printf("gpio: requesting pin %u failed\n", CONFIG_AML_PCIEB_GPIO_RESET);
-		return;
-	}
-	gpio_direction_output(CONFIG_AML_PCIEB_GPIO_RESET, 0);
-}
-
-void amlogic_pcie_init_reset_pin(int pcie_dev)
-{
-	int ret;
-
-	if (pcie_dev == 0) {
-		mdelay(5);
-		ret = gpio_request(CONFIG_AML_PCIEA_GPIO_RESET,
-			CONFIG_AML_PCIEA_GPIO_RESET_NAME);
-		if (ret && ret != -EBUSY) {
-			printf("gpio: requesting pin %u failed\n",
-				CONFIG_AML_PCIEA_GPIO_RESET);
-			return;
-		}
-		gpio_direction_output(CONFIG_AML_PCIEA_GPIO_RESET, 1);
-	} else {
-		mdelay(5);
-		ret = gpio_request(CONFIG_AML_PCIEB_GPIO_RESET,
-			CONFIG_AML_PCIEB_GPIO_RESET_NAME);
-		if (ret && ret != -EBUSY) {
-			printf("gpio: requesting pin %u failed\n",
-				CONFIG_AML_PCIEB_GPIO_RESET);
-			return;
-		}
-		gpio_direction_input(CONFIG_AML_PCIEB_GPIO_RESET);
-	}
-}
-
-void amlogic_pcie_disable(void)
-{
-	int ret;
-
-	ret = gpio_request(CONFIG_AML_PCIEA_GPIO_RESET,
-		CONFIG_AML_PCIEA_GPIO_RESET_NAME);
-	if (ret && ret != -EBUSY) {
-		printf("gpio: requesting pin %u failed\n",
-			CONFIG_AML_PCIEA_GPIO_RESET);
-		return;
-	}
-	gpio_direction_output(CONFIG_AML_PCIEA_GPIO_RESET, 0);
-
-	ret = gpio_request(CONFIG_AML_PCIEB_GPIO_RESET,
-		CONFIG_AML_PCIEB_GPIO_RESET_NAME);
-	if (ret && ret != -EBUSY) {
-		printf("gpio: requesting pin %u failed\n",
-			CONFIG_AML_PCIEB_GPIO_RESET);
-		return;
-	}
-	gpio_direction_output(CONFIG_AML_PCIEB_GPIO_RESET, 0);
-}
-#endif
 
 #ifdef CONFIG_AML_HDMITX20
 static void hdmi_tx_set_hdmi_5v(void)
@@ -482,7 +405,7 @@ static struct mtd_partition normal_partition_info[] = {
     {
         .name = "system",
         .offset = 0,
-        .size = 320*SZ_1M,
+        .size = 220*SZ_1M,
     },
 	/* last partition get the rest capacity */
     {
@@ -500,23 +423,11 @@ int get_aml_partition_count(void)
 	return ARRAY_SIZE(normal_partition_info);
 }
 #endif /* CONFIG_AML_MTD */
-void power_save_pre(void)
-{
-	/*Close MIPI clock*/
-	clrbits_le32(P_HHI_MIPI_CNTL0, 0xffffffff);
-	clrbits_le32(P_HHI_MIPI_CNTL1, 0xffffffff);
-	clrbits_le32(P_HHI_MIPI_CNTL2, 0xffdfffff);
-}
+
 int board_init(void)
 {
-#ifdef CONFIG_AML_PCIE
-	pcie_init_reset_pin();
-#endif
-
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if ((0x1b8ec003 != readl(P_PREG_STICKY_REG2)) && (0x1b8ec004 != readl(P_PREG_STICKY_REG2))) {
-		aml_try_factory_usb_burning(0, gd->bd);
-	}
+	aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 
 #ifdef CONFIG_USB_XHCI_AMLOGIC_GXL
@@ -527,11 +438,6 @@ int board_init(void)
 	extern int amlnf_init(unsigned char flag);
 	amlnf_init(0);
 #endif
-#ifdef CONFIG_SYS_I2C_AML
-	board_i2c_init();
-#endif
-	if (get_cpu_id().package_id == MESON_CPU_PACKAGE_ID_A113X)
-		power_save_pre();
 	return 0;
 }
 
@@ -575,11 +481,9 @@ int board_late_init(void){
 #endif
 
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if (0x1b8ec003 == readl(P_PREG_STICKY_REG2))
-		aml_try_factory_usb_burning(1, gd->bd);
 	/*aml_try_factory_sdcard_burning(0, gd->bd);*/
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
-
+	axg_pll_set();
 	return 0;
 }
 #endif
@@ -613,41 +517,3 @@ phys_size_t get_effective_memsize(void)
 	return (((readl(AO_SEC_GP_CFG0)) & 0xFFFF0000) << 4);
 #endif
 }
-
-#ifdef CONFIG_MULTI_DTB
-int checkhw(char * name)
-{
-	unsigned int b_id = 0;
-	char loc_name[64] = {0};
-
-	b_id = get_board_id();
-
-	printf("%s board adc:%d\n", __func__, b_id);
-
-	switch (b_id) {
-	case 0:
-	case 1:
-	case 2:
-		strcpy(loc_name, "axg_s400_1g\0");
-		break;
-	case 3:
-		strcpy(loc_name, "axg_s400_v03\0");
-		break;
-	default:
-		strcpy(loc_name, "axg_s400_1g");
-		break;
-	}
-	if (name != NULL)
-		strcpy(name, loc_name);
-	setenv("aml_dt", loc_name);
-	return 0;
-}
-#endif
-
-const char * const _env_args_reserve_[] =
-{
-		"aml_dt",
-		"firstboot",
-
-		NULL//Keep NULL be last to tell END
-};

@@ -330,7 +330,7 @@ struct aml_i2c_platform g_aml_i2c_plat = {
 	.master_no          = AML_I2C_MASTER_B,
 	.use_pio            = 0,
 	.master_i2c_speed   = AML_I2C_SPPED_100K,
-	.master_ao_pinmux = {
+	.master_b_pinmux = {
 		.scl_reg    = (unsigned long)MESON_I2C_MASTER_B_GPIODV_27_REG,
 		.scl_bit    = MESON_I2C_MASTER_B_GPIODV_27_BIT,
 		.sda_reg    = (unsigned long)MESON_I2C_MASTER_B_GPIODV_26_REG,
@@ -342,8 +342,8 @@ static void board_i2c_init(void)
 	board_i2c_set_pinmux();
 
 	// Amlogic I2C controller initialized
-	// note: it must be call before any I2C operation
-	i2c_init(g_aml_i2c_plat.master_i2c_speed, 0x0);
+	// Note: should be called before any I2C operation
+	aml_i2c_init();
 
 	udelay(10);
 }
@@ -387,14 +387,11 @@ int board_init(void)
 {
     //Please keep CONFIG_AML_V2_FACTORY_BURN at first place of board_init
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if ((0x1b8ec003 != readl(P_PREG_STICKY_REG2)) && (0x1b8ec004 != readl(P_PREG_STICKY_REG2))) {
-		aml_try_factory_usb_burning(0, gd->bd);
-	}
+	aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 
 	clrbits_le32(PREG_PAD_GPIO0_EN_N, (1 << 2));
 	clrbits_le32(PREG_PAD_GPIO0_O, 1 << 2);
-
 	/*for LED*/
 	//clear pinmux
 	clrbits_le32(AO_RTI_PIN_MUX_REG, ((1<<3)|(1<<4)));
@@ -404,16 +401,24 @@ int board_init(void)
 	//set output 1
 	setbits_le32(PREG_PAD_GPIO0_O, (1 << 24));
 
+	//pull up GPIODV_11 for VTV Lock LED
+	//set output mode
+	clrbits_le32(PREG_PAD_GPIO0_EN_N, (1 << 11));
+	//set output 1
+	setbits_le32(PREG_PAD_GPIO0_O, (1 << 11));
+	//pull down GPIODV_20 for VTV Antenna Power (5V)
+	//set output mode
+	clrbits_le32(PREG_PAD_GPIO0_EN_N, (1 << 20));
+	//set output 0
+	clrbits_le32(PREG_PAD_GPIO0_O, (1 << 20));
+
 	/*Power on GPIOAO_2 for VCC_5V*/
 	clrbits_le32(P_AO_GPIO_O_EN_N, ((1<<2)|(1<<18)));
 #ifdef CONFIG_USB_XHCI_AMLOGIC_GXL
 	board_usb_init(&g_usb_config_GXL_skt,BOARD_USB_MODE_HOST);
 #endif /*CONFIG_USB_XHCI_AMLOGIC*/
 	canvas_init();
-#ifdef CONFIG_AML_VPU
-	vpu_probe();
-#endif
-	vpp_init();
+
 #ifndef CONFIG_AML_IRDETECT_EARLY
 #ifdef CONFIG_AML_HDMITX20
 	hdmi_tx_set_hdmi_5v();
@@ -427,7 +432,6 @@ int board_init(void)
 #ifdef CONFIG_SYS_I2C_AML
 	board_i2c_init();
 #endif
-
 	return 0;
 }
 #ifdef CONFIG_AML_IRDETECT_EARLY
@@ -448,6 +452,8 @@ U_BOOT_CMD(hdmi_init, CONFIG_SYS_MAXARGS, 0, do_hdmi_init,
 int board_late_init(void){
 	int ret;
 
+	run_command("if itest ${firstboot} == 1; then "\
+			"defenv_reserv;setenv firstboot 1; setenv upgrade_step 2; saveenv; fi;", 0);
 	//update env before anyone using it
 	run_command("get_rebootmode; echo reboot_mode=${reboot_mode}; "\
 			"if test ${reboot_mode} = factory_reset; then "\
@@ -455,11 +461,6 @@ int board_late_init(void){
 	run_command("if itest ${upgrade_step} == 1; then "\
 				"defenv_reserv; setenv upgrade_step 2; saveenv; fi;", 0);
 
-#ifndef CONFIG_AML_IRDETECT_EARLY
-	/* after  */
-	run_command("cvbs init;hdmitx hpd", 0);
-	run_command("vout output $outputmode", 0);
-#endif
 	/*add board late init function here*/
 	ret = run_command("store dtb read $dtb_mem_addr", 1);
 	if (ret) {
@@ -474,9 +475,18 @@ int board_late_init(void){
 		}
 		#endif
 	}
+
+#ifdef CONFIG_AML_VPU
+	vpu_probe();
+#endif
+	vpp_init();
+#ifndef CONFIG_AML_IRDETECT_EARLY
+	/* after  */
+	run_command("cvbs init;hdmitx hpd", 0);
+	run_command("vout output $outputmode", 0);
+#endif
+
 #ifdef CONFIG_AML_V2_FACTORY_BURN
-	if (0x1b8ec003 == readl(P_PREG_STICKY_REG2))
-		aml_try_factory_usb_burning(1, gd->bd);
 	aml_try_factory_sdcard_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 	if (get_cpu_id().family_id == MESON_CPU_MAJOR_ID_GXL) {
@@ -492,7 +502,7 @@ int board_late_init(void){
 	ret = run_command("store dtb read $dtb_mem_addr", 1);
 	if (ret) {
 		printf("%s(): [store dtb read $dtb_mem_addr] fail\n", __func__);
-#ifdef CONFIG_DTB_MEM_ADDR
+		#ifdef CONFIG_DTB_MEM_ADDR
 		char cmd[64];
 		printf("load dtb to %x\n", CONFIG_DTB_MEM_ADDR);
 		sprintf(cmd, "store dtb read %x", CONFIG_DTB_MEM_ADDR);
@@ -500,8 +510,9 @@ int board_late_init(void){
 		if (ret) {
 			printf("%s(): %s fail\n", __func__, cmd);
 		}
-#endif
-}
+		#endif
+	}
+
 
 	return 0;
 }
@@ -526,18 +537,18 @@ int check_ddrsize(void)
 		ddr_size += gd->bd->bi_dram[i].size;
 	}
 #if defined(CONFIG_SYS_MEM_TOP_HIDE)
-		ddr_size += CONFIG_SYS_MEM_TOP_HIDE;
+	ddr_size += CONFIG_SYS_MEM_TOP_HIDE;
 #endif
 	switch (ddr_size) {
-	case 0x80000000:
-		setenv("ddr_size", "2"); //2G DDR
-		break;
-	case 0xc0000000:
-		setenv("ddr_size", "3"); //3G DDR
-		break;
-	default:
-		setenv("ddr_size", "0");
-		break;
+		case 0x80000000:
+			setenv("ddr_size", "2"); //2G DDR
+			break;
+		case 0xc0000000:
+			setenv("ddr_size", "3"); //3G DDR
+			break;
+		default:
+			setenv("ddr_size", "0");
+			break;
 	}
 	return 0;
 }

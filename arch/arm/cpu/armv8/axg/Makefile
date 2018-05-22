@@ -7,4 +7,3 @@ obj-$(CONFIG_AML_HDMITX20) += hdmitx20/
 obj-y	+= timer.o
 obj-y	+= mailbox.o
 obj-y   += gate_init.o
-obj-$(CONFIG_CMD_IRBLASTER)	+= irblaster.o
