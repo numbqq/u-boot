@@ -145,7 +145,8 @@
             "\0" \
         "storeboot="\
             "kbi resetflag 0;"\
-            "if imgread kernel ${boot_part} ${loadaddr}; then bootm ${loadaddr}; fi;"\
+            "cfgload;" \
+            "ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000;" \
             "run update;"\
             "\0"\
          "update="\
@@ -243,7 +244,7 @@
             "run wol_init;"\
             "forceupdate;" \
             "run switch_bootmode;"
-#define CONFIG_BOOTCOMMAND "cfgload;kbi resetflag 0;ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000;run update;"
+#define CONFIG_BOOTCOMMAND "run storeboot"
 
 //#define CONFIG_ENV_IS_NOWHERE  1
 #define CONFIG_ENV_SIZE   (64*1024)
