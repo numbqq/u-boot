@@ -469,6 +469,9 @@
 	};
 };
 
+&i2c8 {
+	status = "okay";
+};
 
 &i2s0 {
 	rockchip,playback-channels = <8>;
