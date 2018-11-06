@@ -1878,4 +1878,10 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+config CMD_KHADAS_KBI
+	bool "Khadas Bootloader Instructions"
+	depends on TARGET_KEDGE_RK3399
+	help
+	  Khadas Bootloader Instructions
+
 endmenu
