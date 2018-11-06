@@ -1,0 +1,6 @@
+KEDGE-RK3399
+M:      Nick <nick@khadas.com>
+S:      Maintained
+F:      board/rockchip/kedge_rk3399
+F:      include/configs/kedge_rk3399.h
+F:      configs/kedge-rk3399_defconfig

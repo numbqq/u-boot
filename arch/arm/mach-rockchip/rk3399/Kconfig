@@ -28,6 +28,13 @@ config TARGET_PUMA_RK3399
 	   * HDMI, eDP, MIPI-DSI, MIPI-DSI/CSI and MIPI-CSI
 	   * SPI, I2C, I2S, UART, GPIO, ...
 
+config TARGET_KEDGE_RK3399
+	bool "Khadas Edge RK3399"
+	help
+	  Khadas Edge is a single board computer for Rockchp rk3399,
+	  with full function and phisical connectors support like type-C ports,
+	  usb2.0/3.0 host ports, MIPI, eDP, MAC, SDcard, HDMI, USB-2-serial...
+
 endchoice
 
 config SYS_SOC
@@ -38,5 +45,6 @@ config SYS_MALLOC_F_LEN
 
 source "board/rockchip/evb_rk3399/Kconfig"
 source "board/theobroma-systems/puma_rk3399/Kconfig"
+source "board/rockchip/kedge_rk3399/Kconfig"
 
 endif
