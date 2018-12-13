@@ -264,11 +264,7 @@
             "kbi powerstate;"\
             "kbi trigger wol r;"\
             "setenv bootargs ${bootargs} wol_enable=${wol_enable};"\
-            "if test ${power_state} = 1; then "\
-            "kbi trigger wol w 1;"\
-            "gpio set GPIODV_2;"\
-            "fi;"\
-            "\0"\
+            "\0"
 
 #define CONFIG_PREBOOT  \
             "run bcb_cmd; "\
