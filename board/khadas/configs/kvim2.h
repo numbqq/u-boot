@@ -147,6 +147,7 @@
         "storeboot="\
             "kbi resetflag 0;"\
             "cfgload;" \
+            "run setup_ethmac; " \
             "ext4load mmc 1:5 1080000 zImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 20000000 dtb.img;booti 1080000 10000000 20000000;" \
             "run update;"\
             "\0"\
@@ -194,8 +195,6 @@
                 "kbi usid;"\
                 "setenv bootargs ${bootargs} androidboot.serialno=${usid};"\
                 "setenv serial ${usid};"\
-                "kbi ethmac;"\
-                "setenv bootargs ${bootargs} mac=${eth_mac} androidboot.mac=${eth_mac};"\
                 "if keyman read deviceid ${loadaddr} str; then "\
                     "setenv bootargs ${bootargs} androidboot.deviceid=${deviceid};"\
                 "fi;"\
@@ -234,6 +233,15 @@
             "gpio set GPIODV_2;"\
             "fi;"\
             "\0"\
+          "setup_ethmac=" \
+            "kbi ethmac;" \
+            "if test X${custom_ethmac} != X; then " \
+                "echo Found custom ethmac: ${custom_ethmac}, overwrite eth_mac!; " \
+                "setenv eth_mac ${custom_ethmac}; " \
+            "fi;" \
+            "setenv bootargs ${bootargs} mac=${eth_mac} androidboot.mac=${eth_mac};"\
+            "\0"
+
 
 #define CONFIG_PREBOOT  \
             "run upgrade_check;"\
