@@ -118,7 +118,7 @@
         "cvbs_drv=0\0"\
         "active_slot=_a\0"\
         "boot_part=boot\0"\
-        "fan=auto\0"\
+        "fan_mode=auto\0"\
         "initargs="\
             "root=LABEL=ROOTFS rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 "\
             "\0"\
@@ -129,7 +129,7 @@
             "else fi;"\
             "\0"\
     "storeargs="\
-            "setenv bootargs ${initargs} logo=${display_layer},loaded,${fb_addr},${outputmode} maxcpus=${maxcpus} vout=${outputmode},enable hdmimode=${hdmimode} cvbsmode=${cvbsmode} hdmitx=${cecconfig} ddr_size=${ddr_size} cvbsdrv=${cvbs_drv} jtag=${jtag} fan=${fan}; "\
+            "setenv bootargs ${initargs} logo=${display_layer},loaded,${fb_addr},${outputmode} maxcpus=${maxcpus} vout=${outputmode},enable hdmimode=${hdmimode} cvbsmode=${cvbsmode} hdmitx=${cecconfig} ddr_size=${ddr_size} cvbsdrv=${cvbs_drv} jtag=${jtag} fan=${fan_mode}; "\
             "run cmdline_keys;"\
             "\0"\
         "switch_bootmode="\
