@@ -185,7 +185,6 @@
 	"run check_reboot_mode;"\
 	"run combine_key;" \
 	"run upgrade_key;" \
-	"run check_power_key;" \
 	"gpio clear GPIODV_27;"
 
 #define CONFIG_BOOTCOMMAND "ext4load mmc 1:5 1080000 uImage;ext4load mmc 1:5 10000000 uInitrd;ext4load mmc 1:5 5080000 ${boot_dtb};bootm 1080000 10000000 5080000"
