@@ -229,7 +229,8 @@
             "kbi init;"\
             "kbi powerstate;"\
             "kbi trigger wol r;"\
-            "setenv bootargs ${bootargs} wol_enable=${wol_enable};"\
+            "kbi forcereset wol r;"\
+            "setenv bootargs ${bootargs} wol_enable=${wol_enable} wol_forcereset=${wol_forcereset};"\
             "if test ${power_state} = 1; then "\
             "kbi trigger wol w 1;"\
             "gpio set GPIODV_2;"\
